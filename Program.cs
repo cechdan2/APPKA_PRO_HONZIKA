@@ -6,8 +6,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=photoapp.db"));
-
+    options.UseSqlite("Data Source=/Data/photoapp.db"));
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
