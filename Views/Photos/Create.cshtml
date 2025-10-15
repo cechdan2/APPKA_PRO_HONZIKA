@@ -1,0 +1,23 @@
+@model PhotoApp.Models.PhotoRecord
+
+@{
+    ViewData["Title"] = "Přidat nový záznam";
+}
+
+<h2>Přidat nový záznam</h2>
+
+<form asp-action="Create" method="post" enctype="multipart/form-data">
+    <div>
+        <label>Titulek</label>
+        <input asp-for="Title" />
+    </div>
+    <div>
+        <label>Popis</label>
+        <textarea asp-for="Description"></textarea>
+    </div>
+    <div>
+        <label>Obrázek</label>
+        <input type="file" name="imageFile" />
+    </div>
+    <button type="submit">Uložit</button>
+</form>

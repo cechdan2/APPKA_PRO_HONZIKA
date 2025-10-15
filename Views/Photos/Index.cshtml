@@ -1,0 +1,106 @@
+@model IEnumerable<PhotoApp.Models.PhotoRecord>
+@{
+    ViewData["Title"] = "Galerie";
+}
+
+<div class="center-container">
+    <h2 style="margin-bottom: 1rem;">Galerie</h2>
+
+    <div style="margin-bottom: 1.5rem;">
+        <a asp-action="Create" class="btn-add">+ Pøidat nový záznam</a>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <p style="color: gray; font-style: italic;">Zatím žádné fotky. Pøidej první!</p>
+    }
+    else
+    {
+        <div class="gallery">
+            @foreach (var item in Model)
+            {
+                <div class="photo-card">
+                    <a asp-action="Details" asp-route-id="@item.Id">
+                        <img src="@(item.ImagePath ?? "/icons/icon-192.png")" alt="@item.Title" />
+                        <div class="photo-info">
+                            <h3>@item.Title</h3>
+                            <p>
+                                @(string.IsNullOrEmpty(item.Description)
+                                                        ? ""
+                                                        : (item.Description.Length > 120
+                                                        ? item.Description.Substring(0, 120) + "..."
+                                                        : item.Description))
+                    </p>
+                </div>
+            </a>
+        </div>
+                }
+        </div>
+    }
+</div>
+
+<style>
+    .center-container {
+        max-width: 800px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .gallery {
+        width: 100%;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .photo-card {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+        .photo-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .photo-card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+    .photo-info {
+        padding: 0.75rem 1rem;
+    }
+
+        .photo-info h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.4rem;
+        }
+
+        .photo-info p {
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+    .btn-add {
+        display: inline-block;
+        background: #0078d7;
+        color: #fff;
+        padding: 0.6rem 1.2rem;
+        border-radius: 6px;
+        text-decoration: none;
+        font-weight: 500;
+        transition: background 0.2s ease;
+    }
+
+        .btn-add:hover {
+            background: #005ea6;
+        }
+</style>
