@@ -4,20 +4,95 @@
     ViewData["Title"] = "Přidat nový záznam";
 }
 
-<h2>Přidat nový záznam</h2>
+<div class="center-form-container">
+    <h2>Přidat nový záznam</h2>
 
-<form asp-action="Create" method="post" enctype="multipart/form-data">
-    <div>
-        <label>Titulek</label>
-        <input asp-for="Title" />
-    </div>
-    <div>
-        <label>Popis</label>
-        <textarea asp-for="Description"></textarea>
-    </div>
-    <div>
-        <label>Obrázek</label>
-        <input type="file" name="imageFile" />
-    </div>
-    <button type="submit">Uložit</button>
-</form>
+    <form asp-action="Create" method="post" enctype="multipart/form-data" class="styled-form">
+        <div class="form-group">
+            <label for="Title">Titulek</label>
+            <input asp-for="Title" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label for="Description">Popis</label>
+            <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+        </div>
+        <div class="form-group">
+            <label for="imageFile">Obrázek</label>
+            <input type="file" name="imageFile" class="form-control-file" />
+        </div>
+        <button type="submit" class="btn-primary">Uložit</button>
+    </form>
+</div>
+
+<style>
+    .center-form-container {
+        max-width: 440px;
+        margin: 4vh auto 0 auto;
+        padding: 2rem 2.2rem 2rem 2.2rem;
+        background: #fff;
+        border-radius: 14px;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+        .center-form-container h2 {
+            margin-bottom: 1.8rem;
+            text-align: center;
+            font-size: 1.6rem;
+            color: #005ea6;
+        }
+
+    .styled-form {
+        width: 100%;
+    }
+
+    .form-group {
+        margin-bottom: 1.4rem;
+        display: flex;
+        flex-direction: column;
+    }
+
+        .form-group label {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+
+    .form-control {
+        padding: 0.5rem 0.9rem;
+        border: 1px solid #cfd8dc;
+        border-radius: 7px;
+        font-size: 1rem;
+        transition: border-color 0.15s;
+    }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #0078d7;
+        }
+
+    .form-control-file {
+        margin-top: 0.5rem;
+        font-size: 1rem;
+    }
+
+    .btn-primary {
+        background: #0078d7;
+        color: #fff;
+        padding: 0.7rem 1.6rem;
+        border: none;
+        border-radius: 8px;
+        font-size: 1.1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.2s ease;
+        margin-top: 0.2rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    }
+
+        .btn-primary:hover {
+            background: #005ea6;
+        }
+</style>
