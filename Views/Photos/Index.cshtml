@@ -124,6 +124,21 @@
         border: 1px solid var(--border)
     }
 
+    .img-link {
+        text-decoration: none;
+        color: inherit;
+        cursor: pointer;
+    }
+
+        .img-link:visited,
+        .img-link:active {
+            color: inherit;
+        }
+
+        .img-link:hover {
+            opacity: 0.85;
+        }
+
     .cards-container {
         display: grid;
         gap: 12px
@@ -229,7 +244,9 @@
         </div>
         <div class="right">
             <a href="@Url.Action("Create")" class="primary pill">+ Nový vzorek</a>
-        </div>
+            <a href="@Url.Action("ExportCsv", "Photos")" class="pill">Export CSV</a>
+            <a href="@Url.Action("ExportZip", "Photos")" class="pill">Export ZIP (data + obrázky)</a>
+                   </div>
     </div>
 </header>
 
@@ -260,14 +277,18 @@
                         <td>
                             @if (!string.IsNullOrEmpty(item.PhotoPath))
                             {
-                                <img class="thumb" src="@item.PhotoPath" alt="@item.Name" />
+                                <a href="@Url.Action("Details", new { id = item.Id })" class="img-link">
+                                    <img class="thumb" src="@item.PhotoPath" alt="@item.Name" />
+                                </a>
                             }
                             else
                             {
                                 <span>—</span>
                             }
                         </td>
-                        <td>@item.Name</td>
+                        <td>
+                            <a href="@Url.Action("Details", new { id = item.Id })">@item.Name</a>
+                        </td>
                         <td>@item.Code</td>
                         <td>@item.Type</td>
                         <td>@item.Supplier</td>
@@ -293,10 +314,11 @@
                     }
                     <div class="card-body">
                         <div class="card-title">@item.Name</div>
-                        <div class="card-sub">@item.Type @if (!string.IsNullOrEmpty(item.Code)){
-                        <span>- @item.Code</span>
-                    }
-</div>
+                        <div class="card-sub">
+                            @item.Type @if (!string.IsNullOrEmpty(item.Code)){
+                            <span>- @item.Code</span>
+                        }
+                    </div>
                     <div class="card-props">
                         @if (!string.IsNullOrEmpty(item.Supplier))
                         {

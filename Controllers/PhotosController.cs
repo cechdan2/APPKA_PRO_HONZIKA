@@ -2,6 +2,9 @@
 using Microsoft.EntityFrameworkCore;
 using PhotoApp.Data;
 using PhotoApp.Models;
+using System.Text;
+using System.Text.Json;
+using System.IO.Compression;
 
 public class PhotosController : Controller
 {
@@ -128,6 +131,19 @@ public class PhotosController : Controller
         return View(photo);
     }
 
+    // GET: Photos/Details/5
+    public async Task<IActionResult> Details(int? id)
+    {
+        if (id == null)
+            return NotFound();
+
+        var photo = await _context.Photos.FirstOrDefaultAsync(m => m.Id == id);
+        if (photo == null)
+            return NotFound();
+
+        return View(photo);
+    }
+
     // GET: Photos/Delete/5
     public async Task<IActionResult> Delete(int? id)
     {
@@ -153,5 +169,72 @@ public class PhotosController : Controller
             await _context.SaveChangesAsync();
         }
         return RedirectToAction(nameof(Index));
+    }
+
+    // --- Export CSV ---
+    [HttpGet]
+    public async Task<IActionResult> ExportCsv()
+    {
+        var data = await _context.Photos.OrderByDescending(x => x.UpdatedAt).ToListAsync();
+        var sb = new StringBuilder();
+        sb.AppendLine("Id;Name;Code;Type;Supplier;Notes;PhotoPath;UpdatedAt");
+
+        foreach (var p in data)
+        {
+            sb.AppendLine($"{p.Id};{p.Name};{p.Code};{p.Type};{p.Supplier};{p.Notes};{p.PhotoPath};{p.UpdatedAt:yyyy-MM-dd HH:mm}");
+        }
+
+        return File(Encoding.UTF8.GetBytes(sb.ToString()), "text/csv", "vzorky.csv");
+    }
+
+    // --- Export JSON ---
+    [HttpGet]
+    public async Task<IActionResult> ExportJson()
+    {
+        var data = await _context.Photos.OrderByDescending(x => x.UpdatedAt).ToListAsync();
+        var json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
+        return File(Encoding.UTF8.GetBytes(json), "application/json", "vzorky.json");
+    }
+
+    // --- Export ZIP (CSV + obrázky) ---
+    [HttpGet]
+    public async Task<IActionResult> ExportZip()
+    {
+        var photos = await _context.Photos.OrderByDescending(x => x.UpdatedAt).ToListAsync();
+
+        // 1. Vygeneruj CSV do paměti
+        var sb = new StringBuilder();
+        sb.AppendLine("Id;Name;Code;Type;Supplier;Notes;PhotoPath;UpdatedAt");
+        foreach (var p in photos)
+            sb.AppendLine($"{p.Id};{p.Name};{p.Code};{p.Type};{p.Supplier};{p.Notes};{System.IO.Path.GetFileName(p.PhotoPath)};{p.UpdatedAt:yyyy-MM-dd HH:mm}");
+
+        using (var ms = new MemoryStream())
+        using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, true))
+        {
+            // 2. Přidej CSV
+            var csvEntry = zip.CreateEntry("vzorky.csv");
+            using (var entryStream = csvEntry.Open())
+            using (var sw = new StreamWriter(entryStream, Encoding.UTF8))
+                sw.Write(sb.ToString());
+
+            // 3. Přidej obrázky
+            foreach (var p in photos)
+            {
+                if (!string.IsNullOrEmpty(p.PhotoPath))
+                {
+                    var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", p.PhotoPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+                    if (System.IO.File.Exists(filePath))
+                    {
+                        var entry = zip.CreateEntry("uploads/" + System.IO.Path.GetFileName(p.PhotoPath));
+                        using (var fileStream = System.IO.File.OpenRead(filePath))
+                        using (var zipStream = entry.Open())
+                            await fileStream.CopyToAsync(zipStream);
+                    }
+                }
+            }
+
+            zip.Dispose();
+            return File(ms.ToArray(), "application/zip", "vzorky.zip");
+        }
     }
 }

@@ -1,42 +1,105 @@
 @model PhotoApp.Models.PhotoRecord
 @{
-    ViewData["Title"] = Model.Name;
+    ViewData["Title"] = "Detail vzorku";
 }
-<div class="photo-detail">
-    <img src="@(Model.PhotoPath ?? "/icons/icon-192.png")" alt="@Model.Name" />
-    <h2>@Model.Name</h2>
-    <p>@Model.Notes</p>
-    <div>
-        <strong>Kód:</strong> @Model.Code,
-        <strong>Typ:</strong> @Model.Type,
-        <strong>Dodavatel:</strong> @Model.Supplier
-    </div>
-    <div>
-        <small>Upraveno: @Model.UpdatedAt.ToString("g")</small>
-    </div>
-    <a asp-action="Index" class="back-link">← Zpět na galerii</a>
-</div>
-
 <style>
-    .photo-detail {
+    :root {
+        --brand: #16a34a;
+        --brand-dark: #166534;
+        --border: #dbe7d9;
+        --bg: #f4fbf4;
+        --text: #0b1f0b;
+        --white: #fff;
+        --radius: 12px;
+    }
+
+    body {
+        font-family: system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;
+        color: var(--text);
+        background: var(--bg);
+    }
+
+    .detail-card {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 2.5rem 2rem;
+        margin: 45px auto;
+        max-width: 540px;
+        box-shadow: 0 2px 8px rgba(0,0,0,.08);
         display: flex;
         flex-direction: column;
         align-items: center;
-        max-width: 800px;
-        margin: 2rem auto;
         text-align: center;
     }
 
-        .photo-detail img {
-            width: 100%;
-            max-width: 700px;
-            border-radius: 10px;
-            margin-bottom: 1rem;
-        }
+    .detail-img {
+        width: 240px;
+        height: 240px;
+        object-fit: cover;
+        border-radius: 14px;
+        border: 1.5px solid var(--border);
+        margin-bottom: 1.4rem;
+        background: #e6f9e9;
+    }
 
-    .back-link {
-        margin-top: 1rem;
-        color: #0078d7;
+    .detail-title {
+        font-size: 2rem;
+        color: var(--brand-dark);
+        font-weight: 700;
+        margin-bottom: 0.6rem;
+    }
+
+    .detail-info {
+        margin-bottom: 1.2rem;
+        color: #444;
+    }
+
+    .pill {
+        display: inline-block;
+        padding: 2px 9px;
+        border-radius: 999px;
+        background: #e6f9e9;
+        border: 1px solid var(--border);
+        font-size: 15px;
+        margin: 0 3px;
+    }
+
+    .muted {
+        color: #666;
+        font-size: 1rem;
+        margin-top: 1.3em;
+    }
+
+    .btn {
+        padding: 8px 16px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--white);
+        color: var(--brand-dark);
+        cursor: pointer;
+        font-weight: 500;
+        margin-top: 2em;
         text-decoration: none;
     }
+
+        .btn:hover {
+            background: #e6f9e9;
+        }
 </style>
+
+<div class="detail-card">
+    @if (!string.IsNullOrEmpty(Model.PhotoPath))
+    {
+        <img src="@Model.PhotoPath" class="detail-img" alt="Foto vzorku" />
+    }
+    <div class="detail-title">@Model.Name</div>
+    <div class="detail-info">
+        <div><strong>Kód:</strong> @Model.Code</div>
+        <div><strong>Typ:</strong> @Model.Type</div>
+        <div><strong>Dodavatel:</strong> <span class="pill">@Model.Supplier</span></div>
+        <div style="margin-top:12px;"><strong>Poznámky:</strong> @Model.Notes</div>
+    </div>
+    <div class="muted">Upraveno: @Model.UpdatedAt.ToString("g")</div>
+    <a href="@Url.Action("Index")" class="btn">← Zpět na katalog</a>
+</div>

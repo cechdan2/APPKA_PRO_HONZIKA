@@ -2,33 +2,90 @@
 <html lang="cs">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - PhotoApp</title>
-    <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#0078d7" />
-    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"] - ODPO s.r.o.</title>
     <link rel="stylesheet" href="~/css/site.css" />
+    <style>
+        :root {
+            --brand: #16a34a;
+            --brand-dark: #166534;
+            --border: #dbe7d9;
+            --bg: #f4fbf4;
+            --text: #0b1f0b;
+            --white: #fff;
+            --pad: 12px;
+            --gap: 8px;
+            --radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            font-family: system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;
+            color: var(--text);
+            background: var(--bg)
+        }
+
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 5;
+            background: #fff;
+            border-bottom: 1px solid var(--border)
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 14px var(--pad)
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px
+        }
+
+            .brand img {
+                height: 36px;
+                width: auto
+            }
+
+        h1 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--brand-dark)
+        }
+
+        .right {
+            margin-left: auto;
+            display: flex;
+            gap: var(--gap);
+            flex-wrap: wrap;
+            align-items: center
+        }
+        /* ... případně další styly ... */
+    </style>
 </head>
 <body>
     <header>
-        <nav class="topnav">
-            <a asp-controller="Photos" asp-action="Index">Galerie</a>
-            <a asp-controller="Photos" asp-action="Create">Přidat nový</a>
-        </nav>
+        <div class="container" style="display:flex;align-items:center;gap:12px">
+            <div class="brand">
+                <img src="/logo.png" alt="ODPO logo">
+                <h1>ODPO s.r.o. – Katalog vzorků plastů</h1>
+            </div>
+            <div class="right">
+                <a href="@Url.Action("Create", "Photos")" class="primary pill">+ Nový vzorek</a>
+            </div>
+        </div>
     </header>
-
-    <main role="main" class="container">
+    <main class="container">
         @RenderBody()
     </main>
-
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/service-worker.js')
-                .then(() => console.log('Service Worker registered'))
-                .catch(err => console.error('Service Worker failed:', err));
-        }
-    </script>
+    @RenderSection("Scripts", required: false)
 </body>
 </html>
