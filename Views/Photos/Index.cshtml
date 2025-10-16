@@ -1,106 +1,317 @@
-@model IEnumerable<PhotoApp.Models.PhotoRecord>
+﻿@model List<PhotoApp.Models.PhotoRecord>
 @{
-    ViewData["Title"] = "Galerie";
+    ViewData["Title"] = "ODPO s.r.o. – Katalog vzorků plastů";
 }
-
-<div class="center-container">
-    <h2 style="margin-bottom: 1rem;">Galerie</h2>
-
-    <div style="margin-bottom: 1.5rem;">
-        <a asp-action="Create" class="btn-add">+ P�idat nov� z�znam</a>
-    </div>
-
-    @if (!Model.Any())
-    {
-        <p style="color: gray; font-style: italic;">Zat�m ��dn� fotky. P�idej prvn�!</p>
+<style>
+    :root {
+        --brand: #16a34a;
+        --brand-dark: #166534;
+        --border: #dbe7d9;
+        --bg: #f4fbf4;
+        --text: #0b1f0b;
+        --white: #fff;
+        --pad: 12px;
+        --gap: 8px;
+        --radius: 12px;
     }
-    else
-    {
-        <div class="gallery">
-            @foreach (var item in Model)
-            {
-                <div class="photo-card">
-                    <a asp-action="Details" asp-route-id="@item.Id">
-                        <img src="@(item.ImagePath ?? "/icons/icon-192.png")" alt="@item.Title" />
-                        <div class="photo-info">
-                            <h3>@item.Title</h3>
-                            <p>
-                                @(string.IsNullOrEmpty(item.Description)
-                                                        ? ""
-                                                        : (item.Description.Length > 120
-                                                        ? item.Description.Substring(0, 120) + "..."
-                                                        : item.Description))
-                    </p>
+
+    * {
+        box-sizing: border-box
+    }
+
+    body {
+        margin: 0;
+        font-family: system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;
+        color: var(--text);
+        background: var(--bg)
+    }
+
+    header {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        background: #fff;
+        border-bottom: 1px solid var(--border)
+    }
+
+    .container {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 14px var(--pad)
+    }
+
+    .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px
+    }
+
+        .brand img {
+            height: 36px;
+            width: auto
+        }
+
+    h1 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--brand-dark)
+    }
+
+    button {
+        padding: 8px 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--white);
+        cursor: pointer
+    }
+
+        button.primary {
+            background: var(--brand);
+            color: #fff;
+            border-color: var(--brand-dark)
+        }
+
+        button.destructive {
+            background: #ef4444;
+            color: #fff;
+            border-color: #b91c1c
+        }
+
+        button.pill {
+            border-radius: 999px
+        }
+
+    .right {
+        margin-left: auto;
+        display: flex;
+        gap: var(--gap);
+        flex-wrap: wrap;
+        align-items: center
+    }
+
+    .card {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: var(--pad)
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse
+    }
+
+    th, td {
+        padding: 10px;
+        border-bottom: 1px solid var(--border)
+    }
+
+    th {
+        text-align: left;
+        color: var(--brand-dark)
+    }
+
+    tr:hover {
+        background: #f0fbf3
+    }
+
+    .thumb {
+        width: 56px;
+        height: 56px;
+        object-fit: cover;
+        border-radius: 8px;
+        border: 1px solid var(--border)
+    }
+
+    .cards-container {
+        display: grid;
+        gap: 12px
+    }
+
+    .card-item {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,.05)
+    }
+
+    .card-top {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start
+    }
+
+        .card-top img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid var(--border)
+        }
+
+    .card-body {
+        flex: 1
+    }
+
+    .card-title {
+        font-weight: 700;
+        color: var(--brand-dark)
+    }
+
+    .card-sub {
+        font-size: 13px;
+        color: #555
+    }
+
+    .card-props {
+        margin-top: 6px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px
+    }
+
+    .pill {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 999px;
+        background: #e6f9e9;
+        border: 1px solid var(--border);
+        font-size: 11px
+    }
+
+    .card-actions {
+        margin-top: 8px;
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap
+    }
+
+    .muted {
+        color: #666;
+        font-size: 12px
+    }
+
+    .footer {
+        text-align: center;
+        color: #3b6b3b;
+        font-size: 12px;
+        padding: 20px 0
+    }
+
+    @@media (max-width: 767px) {
+        #tableView {
+            display: none;
+        }
+
+        #cardsView {
+            display: grid;
+        }
+    }
+
+    @@media (min-width: 768px) {
+        #tableView {
+            display: block;
+        }
+
+        #cardsView {
+            display: none;
+        }
+    }
+</style>
+
+<header>
+    <div class="container" style="display:flex;align-items:center;gap:12px">
+        <div class="brand">
+            <img src="/logo.png" alt="ODPO logo">
+            <h1>ODPO s.r.o. – Katalog vzorků plastů</h1>
+        </div>
+        <div class="right">
+            <a href="@Url.Action("Create")" class="primary pill">+ Nový vzorek</a>
+        </div>
+    </div>
+</header>
+
+<main class="container">
+    <div class="toolbar card" style="display:flex;gap:8px;flex-wrap:wrap">
+        <form method="get" style="flex:1">
+            <input type="search" name="search" placeholder="Hledat…" value="@(Context.Request.Query["search"])" style="width:100%;padding:7px;border-radius:7px;border:1px solid #dbe7d9;">
+        </form>
+    </div>
+    <!-- Desktop tabulka -->
+    <div id="tableView" class="card">
+        <table>
+            <thead>
+                <tr>
+                    <th>Foto</th>
+                    <th>Název</th>
+                    <th>Kód</th>
+                    <th>Typ</th>
+                    <th>Dodavatel</th>
+                    <th>Upraveno</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>
+                            @if (!string.IsNullOrEmpty(item.PhotoPath))
+                            {
+                                <img class="thumb" src="@item.PhotoPath" alt="@item.Name" />
+                            }
+                            else
+                            {
+                                <span>—</span>
+                            }
+                        </td>
+                        <td>@item.Name</td>
+                        <td>@item.Code</td>
+                        <td>@item.Type</td>
+                        <td>@item.Supplier</td>
+                        <td>@item.UpdatedAt.ToString("g")</td>
+                        <td>
+                            <a href="@Url.Action("Edit", new { id = item.Id })">✏️</a>
+                            <a href="@Url.Action("Delete", new { id = item.Id })" class="destructive">🗑</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <!-- Mobilní kartičky -->
+    <div id="cardsView" class="cards-container">
+        @foreach (var item in Model)
+        {
+            <div class="card-item">
+                <div class="card-top">
+                    @if (!string.IsNullOrEmpty(item.PhotoPath))
+                    {
+                        <img src="@item.PhotoPath" class="thumb" alt="@item.Name" />
+                    }
+                    <div class="card-body">
+                        <div class="card-title">@item.Name</div>
+                        <div class="card-sub">@item.Type @if (!string.IsNullOrEmpty(item.Code)){
+                        <span>- @item.Code</span>
+                    }
+</div>
+                    <div class="card-props">
+                        @if (!string.IsNullOrEmpty(item.Supplier))
+                        {
+                            <span class="pill">@item.Supplier</span>
+                        }
+                    </div>
+                    <div class="muted">@item.UpdatedAt.ToString("g")</div>
                 </div>
-            </a>
+            </div>
+            <div class="card-actions">
+                <a href="@Url.Action("Edit", new { id = item.Id })" class="pill">✏️ Upravit</a>
+                <a href="@Url.Action("Delete", new { id = item.Id })" class="destructive pill">🗑 Smazat</a>
+            </div>
         </div>
                 }
-        </div>
-    }
-</div>
-
-<style>
-    .center-container {
-        max-width: 800px;
-        margin: 0 auto;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
-
-    .gallery {
-        width: 100%;
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        gap: 1rem;
-        margin-top: 1rem;
-    }
-
-    .photo-card {
-        background: #fff;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        overflow: hidden;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-        .photo-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-
-        .photo-card img {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
-        }
-
-    .photo-info {
-        padding: 0.75rem 1rem;
-    }
-
-        .photo-info h3 {
-            font-size: 1.1rem;
-            margin-bottom: 0.4rem;
-        }
-
-        .photo-info p {
-            font-size: 0.9rem;
-            color: #555;
-        }
-
-    .btn-add {
-        display: inline-block;
-        background: #0078d7;
-        color: #fff;
-        padding: 0.6rem 1.2rem;
-        border-radius: 6px;
-        text-decoration: none;
-        font-weight: 500;
-        transition: background 0.2s ease;
-    }
-
-        .btn-add:hover {
-            background: #005ea6;
-        }
-</style>
+    </div>
+    <div class="footer">Data se ukládají v databázi. Pro zálohu exportujte data ze serveru.</div>
+</main>

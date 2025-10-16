@@ -1,0 +1,33 @@
+﻿@model PhotoApp.Models.PhotoRecord
+
+@{
+    ViewData["Title"] = "Smazat vzorek";
+}
+
+<div class="center-form-container">
+    <h2>Opravdu chcete smazat tento vzorek?</h2>
+    <dl>
+        <dt>Název</dt>
+        <dd>@Model.Name</dd>
+        <dt>Kód</dt>
+        <dd>@Model.Code</dd>
+        <dt>Typ</dt>
+        <dd>@Model.Type</dd>
+        <dt>Dodavatel</dt>
+        <dd>@Model.Supplier</dd>
+        <dt>Poznámky</dt>
+        <dd>@Model.Notes</dd>
+        @if (!string.IsNullOrEmpty(Model.PhotoPath))
+        {
+            <dt>Obrázek</dt>
+            <dd>
+                <img src="@Model.PhotoPath" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid #dbe7d9;" alt="Obrázek vzorku" />
+            </dd>
+        }
+    </dl>
+    <form asp-action="Delete" method="post">
+        <input type="hidden" asp-for="Id" />
+        <button type="submit" class="btn btn-danger">Smazat</button>
+        <a href="@Url.Action("Index")" class="btn">Zpět</a>
+    </form>
+</div>

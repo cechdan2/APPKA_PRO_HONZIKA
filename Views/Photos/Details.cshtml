@@ -1,16 +1,42 @@
 @model PhotoApp.Models.PhotoRecord
 @{
-    ViewData["Title"] = Model.Title;
+    ViewData["Title"] = Model.Name;
 }
 <div class="photo-detail">
-    <img src="@(Model.ImagePath ?? "/icons/icon-192.png")" alt="@Model.Title" />
-    <h2>@Model.Title</h2>
-    <p>@Model.Description</p>
+    <img src="@(Model.PhotoPath ?? "/icons/icon-192.png")" alt="@Model.Name" />
+    <h2>@Model.Name</h2>
+    <p>@Model.Notes</p>
+    <div>
+        <strong>Kód:</strong> @Model.Code,
+        <strong>Typ:</strong> @Model.Type,
+        <strong>Dodavatel:</strong> @Model.Supplier
+    </div>
+    <div>
+        <small>Upraveno: @Model.UpdatedAt.ToString("g")</small>
+    </div>
     <a asp-action="Index" class="back-link">← Zpět na galerii</a>
 </div>
 
 <style>
-.photo-detail { display:flex; flex-direction:column; align-items:center; max-width:800px; margin:2rem auto; text-align:center; }
-.photo-detail img { width:100%; max-width:700px; border-radius:10px; margin-bottom:1rem; }
-.back-link { margin-top:1rem; color:#0078d7; text-decoration:none; }
+    .photo-detail {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        max-width: 800px;
+        margin: 2rem auto;
+        text-align: center;
+    }
+
+        .photo-detail img {
+            width: 100%;
+            max-width: 700px;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+        }
+
+    .back-link {
+        margin-top: 1rem;
+        color: #0078d7;
+        text-decoration: none;
+    }
 </style>

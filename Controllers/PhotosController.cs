@@ -3,74 +3,155 @@ using Microsoft.EntityFrameworkCore;
 using PhotoApp.Data;
 using PhotoApp.Models;
 
-namespace PhotoApp.Controllers
+public class PhotosController : Controller
 {
-    public class PhotosController : Controller
+    private readonly AppDbContext _context;
+
+    public PhotosController(AppDbContext context)
     {
-        private readonly AppDbContext _context;
-        private readonly IWebHostEnvironment _env;
+        _context = context;
+    }
 
-        public PhotosController(AppDbContext context, IWebHostEnvironment env)
+    // GET: Photos
+    public async Task<IActionResult> Index(string search)
+    {
+        var photos = from p in _context.Photos
+                     select p;
+
+        if (!string.IsNullOrEmpty(search))
         {
-            _context = context;
-            _env = env;
+            photos = photos.Where(p => p.Name.Contains(search) || p.Code.Contains(search));
         }
 
-        // GET: /Photos
-        public async Task<IActionResult> Index()
-        {
-            var photos = await _context.Photos.OrderByDescending(p => p.CreatedAt).ToListAsync();
-            return View(photos);
-        }
+        photos = photos.OrderByDescending(p => p.UpdatedAt);
 
-        // GET: /Photos/Create
-        public IActionResult Create()
-        {
-            return View();
-        }
+        return View(await photos.ToListAsync());
+    }
 
-        // POST: /Photos/Create
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(PhotoRecord record, IFormFile? imageFile)
-        {
-            if (!ModelState.IsValid)
-                return View(record);
+    // GET: Photos/Create
+    public IActionResult Create()
+    {
+        return View();
+    }
 
-            if (imageFile != null && imageFile.Length > 0)
+    // POST: Photos/Create
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Create([Bind("Name,Code,Type,Supplier,Notes,UpdatedAt,PhotoPath")] PhotoRecord photo, IFormFile PhotoFile)
+    {
+        if (ModelState.IsValid)
+        {
+            photo.UpdatedAt = DateTime.Now;
+
+            // Uložení fotky do wwwroot/uploads
+            if (PhotoFile != null && PhotoFile.Length > 0)
             {
-                var uploads = Path.Combine(_env.WebRootPath, "uploads");
+                var uploads = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads");
                 if (!Directory.Exists(uploads))
                     Directory.CreateDirectory(uploads);
 
-                var fileName = Path.GetFileNameWithoutExtension(imageFile.FileName)
-                               + "_" + Guid.NewGuid().ToString("N")
-                               + Path.GetExtension(imageFile.FileName);
+                var fileName = Guid.NewGuid() + Path.GetExtension(PhotoFile.FileName);
                 var path = Path.Combine(uploads, fileName);
 
                 using (var stream = new FileStream(path, FileMode.Create))
                 {
-                    await imageFile.CopyToAsync(stream);
+                    await PhotoFile.CopyToAsync(stream);
                 }
 
-                record.ImagePath = "/uploads/" + fileName;
+                photo.PhotoPath = "/uploads/" + fileName;
             }
 
-            record.CreatedAt = DateTime.UtcNow;
-            _context.Add(record);
+            _context.Add(photo);
             await _context.SaveChangesAsync();
-
             return RedirectToAction(nameof(Index));
         }
+        return View(photo);
+    }
 
-        // GET: /Photos/Details/{id}
-        public async Task<IActionResult> Details(int id)
+    // GET: Photos/Edit/5
+    public async Task<IActionResult> Edit(int? id)
+    {
+        if (id == null)
+            return NotFound();
+
+        var photo = await _context.Photos.FindAsync(id);
+        if (photo == null)
+            return NotFound();
+
+        return View(photo);
+    }
+
+    // POST: Photos/Edit/5
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Code,Type,Supplier,Notes,UpdatedAt,PhotoPath")] PhotoRecord photo, IFormFile? PhotoFile)
+    {
+        if (id != photo.Id)
+            return NotFound();
+
+        if (ModelState.IsValid)
         {
-            var photo = await _context.Photos.FindAsync(id);
-            if (photo == null)
-                return NotFound();
+            try
+            {
+                photo.UpdatedAt = DateTime.Now;
 
-            return View(photo);
+                // Uložení nové fotky, pokud je vybrána
+                if (PhotoFile != null && PhotoFile.Length > 0)
+                {
+                    var uploads = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads");
+                    if (!Directory.Exists(uploads))
+                        Directory.CreateDirectory(uploads);
+
+                    var fileName = Guid.NewGuid() + Path.GetExtension(PhotoFile.FileName);
+                    var path = Path.Combine(uploads, fileName);
+
+                    using (var stream = new FileStream(path, FileMode.Create))
+                    {
+                        await PhotoFile.CopyToAsync(stream);
+                    }
+
+                    photo.PhotoPath = "/uploads/" + fileName;
+                }
+
+                _context.Update(photo);
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!_context.Photos.Any(e => e.Id == photo.Id))
+                    return NotFound();
+                else
+                    throw;
+            }
+            return RedirectToAction(nameof(Index));
         }
+        return View(photo);
+    }
+
+    // GET: Photos/Delete/5
+    public async Task<IActionResult> Delete(int? id)
+    {
+        if (id == null)
+            return NotFound();
+
+        var photo = await _context.Photos.FirstOrDefaultAsync(m => m.Id == id);
+        if (photo == null)
+            return NotFound();
+
+        return View(photo);
+    }
+
+    // POST: Photos/Delete/5
+    [HttpPost, ActionName("Delete")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteConfirmed(int id)
+    {
+        var photo = await _context.Photos.FindAsync(id);
+        if (photo != null)
+        {
+            _context.Photos.Remove(photo);
+            await _context.SaveChangesAsync();
+        }
+        return RedirectToAction(nameof(Index));
     }
 }

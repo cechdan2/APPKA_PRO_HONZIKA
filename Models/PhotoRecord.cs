@@ -1,14 +1,16 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace PhotoApp.Models
 {
     public class PhotoRecord
     {
         public int Id { get; set; }
-        [Required]
-        public string Title { get; set; } = string.Empty;
-        public string? Description { get; set; }
-        public string? ImagePath { get; set; }
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public string Name { get; set; } = "";
+        public string Code { get; set; } = "";
+        public string Type { get; set; } = "";
+        public string Supplier { get; set; } = "";
+        public string Notes { get; set; } = "";
+        public string? PhotoPath { get; set; }      // pùvodní pole pro obrázek (ponech pro kompatibilitu)
+        public string? ImagePath { get; set; }      // nové pole, používané v controlleru
+        public DateTime CreatedAt { get; set; }     // pole pro datum vytvoøení
+        public DateTime UpdatedAt { get; set; }     // pole pro datum aktualizace (volitelnì)
     }
 }

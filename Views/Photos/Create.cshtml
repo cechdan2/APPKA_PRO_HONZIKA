@@ -9,16 +9,28 @@
 
     <form asp-action="Create" method="post" enctype="multipart/form-data" class="styled-form">
         <div class="form-group">
-            <label for="Title">Titulek</label>
-            <input asp-for="Title" class="form-control" />
+            <label for="Name">Název</label>
+            <input asp-for="Name" class="form-control" />
         </div>
         <div class="form-group">
-            <label for="Description">Popis</label>
-            <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+            <label for="Code">Kód</label>
+            <input asp-for="Code" class="form-control" />
         </div>
         <div class="form-group">
-            <label for="imageFile">Obrázek</label>
-            <input type="file" name="imageFile" class="form-control-file" />
+            <label for="Type">Typ</label>
+            <input asp-for="Type" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label for="Supplier">Dodavatel</label>
+            <input asp-for="Supplier" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label for="Notes">Poznámky</label>
+            <textarea asp-for="Notes" class="form-control" rows="4"></textarea>
+        </div>
+        <div class="form-group">
+            <label for="PhotoFile">Obrázek</label>
+            <input type="file" name="PhotoFile" class="form-control-file" />
         </div>
         <button type="submit" class="btn-primary">Uložit</button>
     </form>
