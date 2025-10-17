@@ -1,4 +1,11 @@
-﻿@model List<PhotoApp.Models.PhotoRecord>
+﻿@using Microsoft.AspNetCore.Identity
+@inject SignInManager<IdentityUser> SignInManager
+@inject UserManager<IdentityUser> UserManager
+
+
+
+
+@model List<PhotoApp.Models.PhotoRecord>
 @{
     ViewData["Title"] = "ODPO s.r.o. – Katalog vzorků plastů";
 }
@@ -243,8 +250,7 @@
             <h1>ODPO s.r.o. – Katalog vzorků plastů</h1>
         </div>
         <div class="right">
-            <a href="@Url.Action("Create")" class="primary pill">+ Nový vzorek</a>
-            <a href="@Url.Action("ExportCsv", "Photos")" class="pill">Export CSV</a>
+            <a href="@Url.Action("Create")" class="primary pill">+ Nový vzorek</a
             <a href="@Url.Action("ExportZip", "Photos")" class="pill">Export ZIP (data + obrázky)</a>
                    </div>
     </div>
@@ -256,6 +262,20 @@
             <input type="search" name="search" placeholder="Hledat…" value="@(Context.Request.Query["search"])" style="width:100%;padding:7px;border-radius:7px;border:1px solid #dbe7d9;">
         </form>
     </div>
+            <div class="right">
+            @if (SignInManager.IsSignedIn(User))
+            {
+                <span>@UserManager.GetUserName(User)</span>
+                <form asp-area="Identity" asp-page="/Account/Logout" method="post" style="display:inline;">
+                    <button type="submit" class="pill">Odhlásit</button>
+                </form>
+            }
+            else
+            {
+                <a asp-area="Identity" asp-page="/Account/Login" class="pill">Přihlásit</a>
+                <a asp-area="Identity" asp-page="/Account/Register" class="pill">Registrovat</a>
+            }
+        </div>
     <!-- Desktop tabulka -->
     <div id="tableView" class="card">
         <table>

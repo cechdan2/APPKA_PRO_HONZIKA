@@ -5,7 +5,9 @@ using PhotoApp.Models;
 using System.Text;
 using System.Text.Json;
 using System.IO.Compression;
+using Microsoft.AspNetCore.Authorization;
 
+[Authorize] // <-- přidat na kontroler!
 public class PhotosController : Controller
 {
     private readonly AppDbContext _context;
