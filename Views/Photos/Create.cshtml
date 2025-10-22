@@ -3,6 +3,7 @@
 @{
     ViewData["Title"] = "Přidat nový záznam";
 }
+
 <style>
     :root {
         --brand: #16a34a;
@@ -17,7 +18,7 @@
     }
 
     * {
-        box-sizing: border-box
+        box-sizing: border-box;
     }
 
     body {
@@ -65,11 +66,11 @@
         border-radius: var(--radius);
         padding: 2rem 2.2rem 2rem 2.2rem;
         margin: 40px auto 0 auto;
-        max-width: 500px;
+        max-width: 720px;
         box-shadow: 0 2px 8px rgba(0,0,0,.08);
         display: flex;
         flex-direction: column;
-        align-items: center;
+        align-items: stretch;
     }
 
         .center-form-container h2 {
@@ -81,17 +82,25 @@
 
     .styled-form {
         width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px 18px;
+        align-items: start;
+    }
+
+    .full {
+        grid-column: 1 / -1;
     }
 
     .form-group {
-        margin-bottom: 1.4rem;
         display: flex;
         flex-direction: column;
+        margin-bottom: 0.5rem;
     }
 
         .form-group label {
             font-weight: 500;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.4rem;
             color: #333;
         }
 
@@ -100,7 +109,6 @@
         border: 1px solid #cfd8dc;
         border-radius: 7px;
         font-size: 1rem;
-        transition: border-color 0.15s;
     }
 
         .form-control:focus {
@@ -156,11 +164,31 @@
         border: 1px solid var(--border);
         margin-top: 10px;
     }
+
+    .validation-summary {
+        color: #b91c1c;
+        margin-bottom: 8px;
+        grid-column: 1 / -1;
+    }
+
+    .field-validation {
+        color: #b91c1c;
+        font-size: 0.95rem;
+        margin-top: 6px;
+    }
+
+    /* small screens */
+    @@media (max-width: 640px) {
+        .styled-form {
+            grid-template-columns: 1fr;
+        }
+    }
 </style>
+
 <header>
     <div class="container" style="display:flex;align-items:center;gap:12px">
         <div class="brand">
-            <img src="/logo.png" alt="ODPO logo">
+            <img src="/logo.png" alt="ODPO logo" />
             <h1>ODPO s.r.o. – Katalog vzorků plastů</h1>
         </div>
     </div>
@@ -169,33 +197,153 @@
 <main class="container">
     <div class="center-form-container">
         <h2>Přidat nový záznam</h2>
-        <form asp-action="Create" method="post" enctype="multipart/form-data" class="styled-form">
+
+        <form asp-action="Create" method="post" enctype="multipart/form-data" class="styled-form" novalidate>
+            @Html.AntiForgeryToken()
+
+            <div asp-validation-summary="All" class="validation-summary"></div>
+
+            <!-- left / right grid -->
             <div class="form-group">
-                <label for="Name">Název</label>
+                <label asp-for="Position">Pozice</label>
+                <input asp-for="Position" class="form-control" />
+                <span asp-validation-for="Position" class="field-validation"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="ExternalId">ID (externí)</label>
+                <input asp-for="ExternalId" class="form-control" />
+                <span asp-validation-for="ExternalId" class="field-validation"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="OriginalName">Původní název</label>
+                <input asp-for="OriginalName" class="form-control" />
+                <span asp-validation-for="OriginalName" class="field-validation"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Material">Materiál</label>
+                <input asp-for="Material" class="form-control" />
+                <span asp-validation-for="Material" class="field-validation"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Form">Forma</label>
+                <input asp-for="Form" class="form-control" />
+                <span asp-validation-for="Form" class="field-validation"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Filler">Plnivo</label>
+                <input asp-for="Filler" class="form-control" />
+                <span asp-validation-for="Filler" class="field-validation"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Color">Barva</label>
+                <input asp-for="Color" class="form-control" />
+                <span asp-validation-for="Color" class="field-validation"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="MonthlyQuantity">Množství (měsíc(t))</label>
+                <input asp-for="MonthlyQuantity" class="form-control" />
+                <span asp-validation-for="MonthlyQuantity" class="field-validation"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Mfi">MFI</label>
+                <input asp-for="Mfi" class="form-control" />
+                <span asp-validation-for="Mfi" class="field-validation"></span>
+            </div>
+
+            <div class="form-group full">
+                <label asp-for="Name">Název</label>
                 <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="field-validation"></span>
             </div>
+
             <div class="form-group">
-                <label for="Code">Kód</label>
+                <label asp-for="Code">Kód</label>
                 <input asp-for="Code" class="form-control" />
+                <span asp-validation-for="Code" class="field-validation"></span>
             </div>
+
             <div class="form-group">
-                <label for="Type">Typ</label>
+                <label asp-for="Type">Typ</label>
                 <input asp-for="Type" class="form-control" />
+                <span asp-validation-for="Type" class="field-validation"></span>
             </div>
+
             <div class="form-group">
-                <label for="Supplier">Dodavatel</label>
+                <label asp-for="Supplier">Dodavatel</label>
                 <input asp-for="Supplier" class="form-control" />
+                <span asp-validation-for="Supplier" class="field-validation"></span>
             </div>
+
+            <div class="form-group full">
+                <label asp-for="Description">Popis</label>
+                <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                <span asp-validation-for="Description" class="field-validation"></span>
+            </div>
+
+            <div class="form-group full">
+                <label asp-for="Notes">Poznámky</label>
+                <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
+                <span asp-validation-for="Notes" class="field-validation"></span>
+            </div>
+
             <div class="form-group">
-                <label for="Notes">Poznámky</label>
-                <textarea asp-for="Notes" class="form-control" rows="4"></textarea>
+                <label for="PhotoFile">Fotka (soubor)</label>
+                <input type="file" name="PhotoFile" id="PhotoFile" class="form-control-file" accept="image/*" />
+                <span class="field-validation" id="photoError"></span>
             </div>
+
             <div class="form-group">
-                <label for="PhotoFile">Obrázek</label>
-                <input type="file" name="PhotoFile" class="form-control-file" />
+                <label for="PhotoPreview">Náhled</label>
+                <div>
+                    <img id="PhotoPreview" src="" class="preview-img" alt="Náhled fotky" style="display:none;" />
+                </div>
             </div>
-            <button type="submit" class="btn-primary">Uložit</button>
-            <a href="@Url.Action("Index")" class="btn">Zpět</a>
+
+            <!-- actions -->
+            <div class="form-group full" style="display:flex; gap:12px; justify-content:flex-end; margin-top: 18px;">
+                <a href="@Url.Action("Index")" class="btn">Zpět</a>
+                <button type="submit" class="btn-primary">Uložit</button>
+            </div>
         </form>
     </div>
 </main>
+
+@section Scripts {
+    <script>
+        // image preview
+        document.getElementById('PhotoFile')?.addEventListener('change', function (e) {
+            const input = e.target;
+            const preview = document.getElementById('PhotoPreview');
+            const err = document.getElementById('photoError');
+            err.textContent = '';
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                if (!file.type.startsWith('image/')) {
+                    err.textContent = 'Prosím vyberte obrázek.';
+                    preview.style.display = 'none';
+                    preview.src = '';
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function (ev) {
+                    preview.src = ev.target.result;
+                    preview.style.display = 'inline-block';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                preview.style.display = 'none';
+                preview.src = '';
+            }
+        });
+    </script>
+
+    <partial name="_ValidationScriptsPartial" />
+}

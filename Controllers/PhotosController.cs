@@ -24,6 +24,12 @@ public class PhotosController : Controller
         _env = env;
     }
 
+
+    public IActionResult Import()
+    {
+        return View(); // vrátí Views/Photos/Import.cshtml
+    }
+
     // GET: Photos
     [AllowAnonymous]
     public async Task<IActionResult> Index(string? search)

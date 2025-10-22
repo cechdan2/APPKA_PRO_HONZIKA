@@ -1,25 +1,113 @@
-﻿@* Views/Shared/_LoginPartial.cshtml *@
+﻿<style>
+    :root {
+        --brand: #16a34a;
+        --brand-dark: #166534;
+        --border: #dbe7d9;
+        --bg: #f4fbf4;
+        --text: #0b1f0b;
+        --white: #fff;
+        --radius: 12px;
+    }
 
-@if (User?.Identity?.IsAuthenticated ?? false)
-{
-    <form asp-controller="Account" asp-action="Logout" method="post" id="logoutForm" class="navbar-right" style="display:inline;">
-        @Html.AntiForgeryToken()
-        <ul class="nav navbar-nav navbar-right" style="display:inline-flex; align-items:center; gap:8px; list-style:none; margin:0; padding:0;">
-            <li>
-                <span>@User.Identity.Name</span>
-            </li>
-            <li>
-                <button type="submit" class="btn btn-link navbar-btn navbar-link">Odhlásit</button>
-            </li>
-        </ul>
-    </form>
-}
-else
-{
-    <ul class="nav navbar-nav navbar-right" style="list-style:none; margin:0; padding:0;">
-        <li>
-            <a asp-controller="Account" asp-action="Login">Přihlásit</a>
-        </li>
-        @* Registrace je odstraněna *@
-    </ul>
-}
+    body {
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu;
+        color: var(--text);
+        background: var(--bg);
+        margin: 0;
+        padding: 0;
+    }
+
+    .detail-card {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 2.5rem 2rem;
+        margin: 45px auto;
+        max-width: 540px;
+        box-shadow: 0 2px 8px rgba(0,0,0,.08);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .detail-img {
+        width: 240px;
+        height: 240px;
+        object-fit: cover;
+        border-radius: 14px;
+        border: 1.5px solid var(--border);
+        margin-bottom: 1.4rem;
+        background: #e6f9e9;
+    }
+
+    .detail-title {
+        font-size: 2rem;
+        color: var(--brand-dark);
+        font-weight: 700;
+        margin-bottom: 0.6rem;
+    }
+
+    .detail-info {
+        margin-bottom: 1.2rem;
+        color: #444;
+    }
+
+    .pill {
+        display: inline-block;
+        padding: 2px 9px;
+        border-radius: 999px;
+        background: #e6f9e9;
+        border: 1px solid var(--border);
+        font-size: 15px;
+        margin: 0 3px;
+    }
+
+    .muted {
+        color: #666;
+        font-size: 1rem;
+        margin-top: 1.3em;
+    }
+
+    .btn {
+        padding: 8px 16px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--white);
+        color: var(--brand-dark);
+        cursor: pointer;
+        font-weight: 500;
+        margin-top: 2em;
+        text-decoration: none;
+    }
+
+        .btn:hover {
+            background: #e6f9e9;
+        }
+
+    @@media (max-width: 767px) {
+        .detail-card
+
+    {
+        margin: 24px 12px;
+        padding: 1.6rem 1.2rem;
+        max-width: calc(100% - 24px);
+    }
+
+    .detail-img {
+        width: 160px;
+        height: 160px;
+    }
+
+    .detail-title {
+        font-size: 1.4rem;
+    }
+
+    }
+
+    @@media (min-width: 768px) {
+        .detail-card {
+            max-width: 640px;
+        }
+    }
+</style>

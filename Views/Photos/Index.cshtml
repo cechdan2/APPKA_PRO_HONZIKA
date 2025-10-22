@@ -243,9 +243,9 @@
             <h1>ODPO s.r.o. – Katalog vzorků plastů</h1>
         </div>
         <div class="right">
-            <a href="@Url.Action("Create")" class="primary pill">+ Nový vzorek</a
+            <a href="@Url.Action("Create")" class="primary pill">+ Nový vzorek</a>
             <a href="@Url.Action("ExportZip", "Photos")" class="pill">Export ZIP (data + obrázky)</a>
-                   </div>
+        </div>
     </div>
 </header>
 
@@ -255,23 +255,103 @@
             <input type="search" name="search" placeholder="Hledat…" value="@(Context.Request.Query["search"])" style="width:100%;padding:7px;border-radius:7px;border:1px solid #dbe7d9;">
         </form>
     </div>
-        <div class="right">
-            @if (User?.Identity?.IsAuthenticated ?? false)
-            {
-                <span>@User.Identity.Name</span>
-                <form asp-controller="Account" asp-action="Logout" method="post" style="display:inline;">
+
+    <div class="header-right">
+        @if (User?.Identity?.IsAuthenticated ?? false)
+        {
+            <div class="user-row">
+                <span class="user-pill" title="Přihlášený uživatel">@User.Identity.Name</span>
+
+                <form asp-controller="Account" asp-action="Logout" method="post" class="logout-form" aria-label="Odhlásit">
                     @Html.AntiForgeryToken()
-                    <button type="submit" class="pill">Odhlásit</button>
+                    <button type="submit" class="action-pill">Odhlásit</button>
                 </form>
+            </div>
+        }
+        else
+        {
+            <div class="user-row">
+                <a asp-controller="Account" asp-action="Login" class="action-pill">Přihlásit</a>
+            </div>
+        }
+    </div>
+
+    <style>
+        :root {
+            --brand: #16a34a;
+            --brand-dark: #166534;
+            --border: #dbe7d9;
+            --white: #fff;
+            --pill-pad: 8px 12px;
+            --radius-pill: 999px;
+            --small-font: 0.95rem;
+        }
+
+        .header-right {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: auto;
+        }
+
+        .user-row {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .user-pill {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: var(--radius-pill);
+            background: #eff9f0;
+            border: 1px solid var(--border);
+            color: var(--brand-dark);
+            font-weight: 600;
+            font-size: var(--small-font);
+        }
+
+        .action-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--pill-pad);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--white);
+            color: var(--brand-dark);
+            text-decoration: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: var(--small-font);
+        }
+
+            .action-pill:hover {
+                background: #e6f9e9;
             }
-            else
-            {
-                <a asp-controller="Account" asp-action="Login" class="pill">Přihlásit</a>
-                @* Registraci NEZOBRAZUJEME pokud nechcete veřejnou registraci.
-                   Pokud chcete mít registraci přes vlastní UI, odkaz přidejte: *@
-                @* <a asp-controller="Account" asp-action="Register" class="pill">Registrovat</a> *@
+
+        .logout-form {
+            margin: 0;
+            display: inline-block;
+        }
+
+        /* compact on narrow screens */
+        @@media (max-width: 480px) {
+            .header-right {
+                gap: 6px;
             }
-        </div>
+
+            .user-pill {
+                padding: 4px 8px;
+                font-size: 0.9rem;
+            }
+
+            .action-pill {
+                padding: 6px 10px;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
     <!-- Desktop tabulka -->
     <div id="tableView" class="card">
         <table>
@@ -282,6 +362,14 @@
                     <th>Kód</th>
                     <th>Typ</th>
                     <th>Dodavatel</th>
+                    <th>Pozice</th>
+                    <th>ID (externí)</th>
+                    <th>Materiál</th>
+                    <th>Forma</th>
+                    <th>Plnivo</th>
+                    <th>Barva</th>
+                    <th>MFI</th>
+                    <th>Množství (měsíc)</th>
                     <th>Upraveno</th>
                     <th></th>
                 </tr>
@@ -291,10 +379,10 @@
                 {
                     <tr>
                         <td>
-                            @if (!string.IsNullOrEmpty(item.PhotoPath))
+                            @if (!string.IsNullOrEmpty(item.PhotoPath) || !string.IsNullOrEmpty(item.ImagePath))
                             {
                                 <a href="@Url.Action("Details", new { id = item.Id })" class="img-link">
-                                    <img class="thumb" src="@item.PhotoPath" alt="@item.Name" />
+                                    <img class="thumb" src="@(string.IsNullOrWhiteSpace(item.ImagePath) ? item.PhotoPath : item.ImagePath)" alt="@item.Name" />
                                 </a>
                             }
                             else
@@ -308,6 +396,14 @@
                         <td>@item.Code</td>
                         <td>@item.Type</td>
                         <td>@item.Supplier</td>
+                        <td>@item.Position</td>
+                        <td>@item.ExternalId</td>
+                        <td>@item.Material</td>
+                        <td>@item.Form</td>
+                        <td>@item.Filler</td>
+                        <td>@item.Color</td>
+                        <td>@item.Mfi</td>
+                        <td>@item.MonthlyQuantity</td>
                         <td>@item.UpdatedAt.ToString("g")</td>
                         <td>
                             <a href="@Url.Action("Edit", new { id = item.Id })">✏️</a>
@@ -324,9 +420,9 @@
         {
             <div class="card-item">
                 <div class="card-top">
-                    @if (!string.IsNullOrEmpty(item.PhotoPath))
+                    @if (!string.IsNullOrEmpty(item.PhotoPath) || !string.IsNullOrEmpty(item.ImagePath))
                     {
-                        <img src="@item.PhotoPath" class="thumb" alt="@item.Name" />
+                        <img src="@(string.IsNullOrWhiteSpace(item.ImagePath) ? item.PhotoPath : item.ImagePath)" class="thumb" alt="@item.Name" />
                     }
                     <div class="card-body">
                         <div class="card-title">@item.Name</div>
@@ -339,6 +435,38 @@
                         @if (!string.IsNullOrEmpty(item.Supplier))
                         {
                             <span class="pill">@item.Supplier</span>
+                        }
+                        @if (!string.IsNullOrEmpty(item.Position))
+                        {
+                            <span class="pill">@item.Position</span>
+                        }
+                        @if (!string.IsNullOrEmpty(item.ExternalId))
+                        {
+                            <span class="pill">ID: @item.ExternalId</span>
+                        }
+                        @if (!string.IsNullOrEmpty(item.Material))
+                        {
+                            <span class="pill">@item.Material</span>
+                        }
+                        @if (!string.IsNullOrEmpty(item.Form))
+                        {
+                            <span class="pill">@item.Form</span>
+                        }
+                        @if (!string.IsNullOrEmpty(item.Filler))
+                        {
+                            <span class="pill">plnivo: @item.Filler</span>
+                        }
+                        @if (!string.IsNullOrEmpty(item.Color))
+                        {
+                            <span class="pill">@item.Color</span>
+                        }
+                        @if (!string.IsNullOrEmpty(item.Mfi))
+                        {
+                            <span class="pill">MFI: @item.Mfi</span>
+                        }
+                        @if (!string.IsNullOrEmpty(item.MonthlyQuantity))
+                        {
+                            <span class="pill">@item.MonthlyQuantity</span>
                         }
                     </div>
                     <div class="muted">@item.UpdatedAt.ToString("g")</div>

@@ -1,0 +1,24 @@
+﻿@{
+    ViewData["Title"] = "Import z Excelu";
+}
+<h2>Import z Excelu (.xlsx)</h2>
+
+<form asp-action="Import" method="post" enctype="multipart/form-data">
+    @Html.AntiForgeryToken()
+    <div>
+        <label for="excelFile">Vyberte soubor (.xlsx):</label>
+        <input type="file" name="excelFile" id="excelFile" accept=".xlsx" />
+    </div>
+    <div style="margin-top:12px;">
+        <button type="submit" class="btn">Importovat</button>
+        <a href="@Url.Action("Index", "Photos")" class="btn">Zpět</a>
+    </div>
+</form>
+
+@if (TempData["ImportResult"] != null)
+{
+    <div style="margin-top:12px;">
+        <strong>@TempData["ImportResult"]</strong>
+        <div style="color:darkred;">@TempData["ImportWarnings"]</div>
+    </div>
+}

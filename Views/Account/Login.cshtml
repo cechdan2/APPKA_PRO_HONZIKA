@@ -1,34 +1,191 @@
 ﻿@{
     ViewData["Title"] = "Přihlášení";
 }
-<h2>Přihlášení</h2>
+<style>
+    :root {
+        --brand: #16a34a;
+        --brand-dark: #166534;
+        --border: #dbe7d9;
+        --bg: #f4fbf4;
+        --text: #0b1f0b;
+        --white: #fff;
+        --radius: 12px;
+        --pad: 12px;
+    }
 
-<form asp-controller="Account" asp-action="Login" method="post">
-    @Html.AntiForgeryToken()
+    body {
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu;
+        color: var(--text);
+        background: var(--bg);
+    }
 
-    <div asp-validation-summary="All" class="text-danger"></div>
+    .login-wrap {
+        display: flex;
+        justify-content: center;
+        padding: 32px 16px;
+    }
 
-    <div class="form-group">
-        <label for="userName">Uživatelské jméno</label>
-        <input type="text" name="userName" class="form-control" id="userName" />
-    </div>
-    <div class="form-group">
-        <label for="password">Heslo</label>
-        <input type="password" name="password" class="form-control" id="password" />
-    </div>
+    .login-card {
+        width: 100%;
+        max-width: 520px;
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 2.0rem 1.6rem;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
 
-    <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
-    <button type="submit" class="btn btn-primary">Přihlásit</button>
-</form>
+    .login-head {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
 
-@if (!ViewData.ModelState.IsValid)
-{
-    <div class="text-danger">
-        @foreach (var err in ViewData.ModelState.Values.SelectMany(v => v.Errors))
-        {
-            <div>@err.ErrorMessage</div>
+    .login-title {
+        font-size: 1.6rem;
+        color: var(--brand-dark);
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .login-sub {
+        color: #666;
+        font-size: 0.95rem;
+        margin-bottom: 1rem;
+    }
+
+    .form-group {
+        margin-bottom: 12px;
+    }
+
+    label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 6px;
+        color: #223;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: #fff;
+        font-size: 0.96rem;
+        box-sizing: border-box;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-top: 10px;
+    }
+
+    .btn-primary {
+        padding: 10px 16px;
+        background: var(--brand);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 700;
+    }
+
+        .btn-primary:hover {
+            background: var(--brand-dark);
         }
+
+    .btn-ghost {
+        padding: 8px 12px;
+        background: var(--white);
+        color: var(--brand-dark);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        cursor: pointer;
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .text-danger {
+        color: #b91c1c;
+        font-size: 0.95rem;
+        margin-top: 8px;
+    }
+
+    .validation-list {
+        margin: 8px 0 0 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .helper-row {
+        margin-top: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+    }
+
+    /* responsive: escape @@media for Razor */
+    @@media (max-width: 480px) {
+        .login-card
+
+    {
+        padding: 1.2rem;
+        margin: 12px;
+    }
+
+    .login-title {
+        font-size: 1.2rem;
+    }
+
+    }
+</style>
+
+<div class="login-wrap">
+    <div class="login-card" role="main" aria-labelledby="loginTitle">
+        <div class="login-head">
+            <h2 id="loginTitle" class="login-title">Přihlášení</h2>
+        </div>
+
+        <p class="login-sub">Přihlaste se pro přístup ke správě katalogu vzorků.</p>
+
+        <form asp-controller="Account" asp-action="Login" method="post" novalidate>
+            @Html.AntiForgeryToken()
+
+            <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+
+            <div class="form-group">
+                <label for="userName">Uživatelské jméno</label>
+                <input type="text" name="userName" class="form-control" id="userName" autocomplete="username" />
+            </div>
+
+            <div class="form-group">
+                <label for="password">Heslo</label>
+                <input type="password" name="password" class="form-control" id="password" autocomplete="current-password" />
+            </div>
+
+            <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+
+            <div class="form-actions">
+                <button type="submit" class="btn-primary">Přihlásit</button>
+            </div>
+
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="text-danger" aria-live="polite">
+                    <ul class="validation-list">
+                        @foreach (var err in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                        {
+                            <li>@err.ErrorMessage</li>
+                        }
+                    </ul>
+                </div>
+            }
+        </form>
     </div>
-}
+</div>
 
 <partial name="_ValidationScriptsPartial" />

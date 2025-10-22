@@ -6,6 +6,8 @@
     var qrApi = !string.IsNullOrWhiteSpace(publicUrl)
         ? "https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=" + System.Uri.EscapeDataString(publicUrl)
         : null;
+    // použijeme ImagePath pokud existuje, jinak PhotoPath (kompatibilita)
+    var imageSrc = !string.IsNullOrWhiteSpace(Model.ImagePath) ? Url.Content(Model.ImagePath) : (string.IsNullOrWhiteSpace(Model.PhotoPath) ? null : Url.Content(Model.PhotoPath));
 }
 <style>
     :root {
@@ -30,7 +32,7 @@
         border-radius: var(--radius);
         padding: 2.5rem 2rem;
         margin: 45px auto;
-        max-width: 540px;
+        max-width: 640px;
         box-shadow: 0 2px 8px rgba(0,0,0,.08);
         display: flex;
         flex-direction: column;
@@ -58,16 +60,34 @@
     .detail-info {
         margin-bottom: 1.2rem;
         color: #444;
+        width: 100%;
+        max-width: 520px;
+        text-align: left;
     }
+
+        .detail-info .row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .detail-info strong {
+            width: 110px;
+            display: inline-block;
+            color: #222;
+        }
 
     .pill {
         display: inline-block;
         padding: 2px 9px;
         border-radius: 999px;
-        background: #e6f9e9;
+        background: #eff9f0;
         border: 1px solid var(--border);
         font-size: 15px;
-        margin: 0 3px;
+        color: var(--brand-dark);
+        margin-left: 6px;
     }
 
     .muted {
@@ -86,6 +106,7 @@
         font-weight: 500;
         margin-top: 2em;
         text-decoration: none;
+        display: inline-block;
     }
 
         .btn:hover {
@@ -115,20 +136,69 @@
         font-size: .9rem;
         color: #444;
     }
+
+    /* responsive */
+    @@media (max-width: 640px) {
+        .detail-card {
+            padding: 1.6rem;
+            margin: 24px 12px;
+            max-width: calc(100% - 24px);
+        }
+
+        .detail-img {
+            width: 160px;
+            height: 160px;
+        }
+
+        .detail-info strong {
+            width: 120px;
+        }
+    }
 </style>
 
 <div class="detail-card">
-    @if (!string.IsNullOrEmpty(Model.PhotoPath))
+    @if (!string.IsNullOrEmpty(imageSrc))
     {
-        <img src="@Url.Content(Model.PhotoPath)" class="detail-img" alt="Foto vzorku" />
+        <img src="@imageSrc" class="detail-img" alt="Foto vzorku - @Model.Name" />
+    }
+    else
+    {
+        <div class="detail-img" aria-hidden="true" title="Žádný obrázek"> </div>
     }
 
     <div class="detail-title">@Model.Name</div>
 
-    <div class="detail-info">
-        <div><strong>Kód:</strong> @Model.Code</div>
-        <div><strong>Typ:</strong> @Model.Type</div>
-        <div style="margin-top:12px;"><strong>Poznámky:</strong> @Model.Notes</div>
+    <div class="detail-info" aria-label="Informace o vzorku">
+        <div class="row"><strong>Kód:</strong> <span>@Model.Code</span></div>
+        <div class="row"><strong>Typ:</strong> <span>@Model.Type</span></div>
+        @if (!string.IsNullOrWhiteSpace(Model.Supplier))
+        {
+            <div class="row"><strong>Dodavatel:</strong> <span class="pill">@Model.Supplier</span></div>
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.Material) || !string.IsNullOrWhiteSpace(Model.Form) || !string.IsNullOrWhiteSpace(Model.Filler))
+        {
+            <div class="row">
+                <strong>Specifikace:</strong>
+                <span>@Model.Material</span>
+                @if (!string.IsNullOrWhiteSpace(Model.Form))
+                {
+                    <span>· @Model.Form</span>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.Filler))
+                {
+                    <span>· plnivo: @Model.Filler</span>
+                }
+            </div>
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.Color))
+        {
+            <div class="row"><strong>Barva:</strong> <span>@Model.Color</span></div>
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.Mfi))
+        {
+            <div class="row"><strong>MFI:</strong> <span>@Model.Mfi</span></div>
+        }
+        <div class="row" style="margin-top:8px;"><strong>Poznámky:</strong> <div>@Model.Notes</div></div>
     </div>
 
     <div class="qr-block" aria-label="Veřejný odkaz a QR kód">
@@ -146,5 +216,5 @@
     </div>
 
     <div class="muted">Upraveno: @((Model.UpdatedAt == DateTime.MinValue) ? "-" : Model.UpdatedAt.ToLocalTime().ToString("g"))</div>
-    <a asp-controller="Photos" asp-action="Index" class="btn">← Zpět na katalog</a>
+    <a asp-controller="Photos" asp-action="Index" class="btn">Zpět na katalog</a>
 </div>
