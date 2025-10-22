@@ -58,10 +58,22 @@ namespace PhotoApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Logout()
+        public async Task<IActionResult> Logout(string? returnUrl = null)
         {
+            // Odhlásíme uživatele (odstraní cookie)
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            return RedirectToAction("Index", "Photos");
+
+            // Dobrá praxe: smazat případné zbytky cookie ručně (volitelné)
+            // Response.Cookies.Delete(".AspNetCore.Cookies"); // pokud používáte jiný název cookie
+
+            // Volitelně předat zprávu do Login view
+            TempData["InfoMessage"] = "Byli jste odhlášeni.";
+
+            // Pokud je returnUrl platný a lokální, přesměruj na něj, jinak na Login
+            if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
+
+            return RedirectToAction("Login", "Account");
         }
 
         public IActionResult AccessDenied()

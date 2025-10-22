@@ -1,11 +1,12 @@
-﻿@inject IHttpContextAccessor HttpContextAccessor
+﻿@* Views/Shared/_LoginPartial.cshtml *@
 
-@if (HttpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated ?? false)
+@if (User?.Identity?.IsAuthenticated ?? false)
 {
-    <form asp-controller="Account" asp-action="Logout" method="post" id="logoutForm" class="navbar-right">
-        <ul class="nav navbar-nav navbar-right">
+    <form asp-controller="Account" asp-action="Logout" method="post" id="logoutForm" class="navbar-right" style="display:inline;">
+        @Html.AntiForgeryToken()
+        <ul class="nav navbar-nav navbar-right" style="display:inline-flex; align-items:center; gap:8px; list-style:none; margin:0; padding:0;">
             <li>
-                <span>@HttpContextAccessor.HttpContext.User.Identity.Name</span>
+                <span>@User.Identity.Name</span>
             </li>
             <li>
                 <button type="submit" class="btn btn-link navbar-btn navbar-link">Odhlásit</button>
@@ -15,7 +16,7 @@
 }
 else
 {
-    <ul class="nav navbar-nav navbar-right">
+    <ul class="nav navbar-nav navbar-right" style="list-style:none; margin:0; padding:0;">
         <li>
             <a asp-controller="Account" asp-action="Login">Přihlásit</a>
         </li>

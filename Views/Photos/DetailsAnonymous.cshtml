@@ -1,13 +1,9 @@
-@model PhotoApp.Models.PhotoRecord
+﻿@model PhotoApp.Models.PhotoRecord
 @{
-    ViewData["Title"] = "Detail vzorku";
-    // bezpečné získání publicUrl z ViewBag pokud controller nastavil, jinak sestavit zde
-    var publicUrl = ViewBag.PublicUrl as string ?? Url.Action("DetailsAnonymous", "Home", new { id = Model.Id }, Context?.Request?.Scheme ?? "https");
-    var qrApi = !string.IsNullOrWhiteSpace(publicUrl)
-        ? "https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=" + System.Uri.EscapeDataString(publicUrl)
-        : null;
+    ViewData["Title"] = "Veřejný detail vzorku";
 }
 <style>
+    /* můžete zkopírovat CSS z hlavního Details view, aby to mělo stejný vzhled */
     :root {
         --brand: #16a34a;
         --brand-dark: #166534;
@@ -91,30 +87,6 @@
         .btn:hover {
             background: #e6f9e9;
         }
-
-    .qr-block {
-        margin-top: 12px;
-        display: flex;
-        gap: 12px;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-    }
-
-    .qr-img {
-        width: 160px;
-        height: 160px;
-        border: 1px solid #ddd;
-        padding: 6px;
-        background: #fff;
-        display: inline-block;
-        object-fit: contain;
-    }
-
-    .qr-note {
-        font-size: .9rem;
-        color: #444;
-    }
 </style>
 
 <div class="detail-card">
@@ -122,29 +94,12 @@
     {
         <img src="@Url.Content(Model.PhotoPath)" class="detail-img" alt="Foto vzorku" />
     }
-
     <div class="detail-title">@Model.Name</div>
-
     <div class="detail-info">
         <div><strong>Kód:</strong> @Model.Code</div>
         <div><strong>Typ:</strong> @Model.Type</div>
+        @* Dodavatel je záměrně vynechán ve veřejném detailu *@
         <div style="margin-top:12px;"><strong>Poznámky:</strong> @Model.Notes</div>
     </div>
-
-    <div class="qr-block" aria-label="Veřejný odkaz a QR kód">
-        <div><strong>Veřejný odkaz (QR):</strong></div>
-
-        @if (!string.IsNullOrWhiteSpace(qrApi))
-        {
-            <img src="@qrApi" alt="QR kód veřejného detailu" class="qr-img" />
-            <div class="qr-note"><a href="@publicUrl" target="_blank" rel="noopener">Otevřít veřejný detail</a></div>
-        }
-        else
-        {
-            <div class="qr-note">Veřejný odkaz není dostupný.</div>
-        }
-    </div>
-
     <div class="muted">Upraveno: @((Model.UpdatedAt == DateTime.MinValue) ? "-" : Model.UpdatedAt.ToLocalTime().ToString("g"))</div>
-    <a asp-controller="Photos" asp-action="Index" class="btn">← Zpět na katalog</a>
 </div>
