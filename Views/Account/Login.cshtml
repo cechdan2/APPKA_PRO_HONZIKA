@@ -1,0 +1,34 @@
+﻿@{
+    ViewData["Title"] = "Přihlášení";
+}
+<h2>Přihlášení</h2>
+
+<form asp-controller="Account" asp-action="Login" method="post">
+    @Html.AntiForgeryToken()
+
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+    <div class="form-group">
+        <label for="userName">Uživatelské jméno</label>
+        <input type="text" name="userName" class="form-control" id="userName" />
+    </div>
+    <div class="form-group">
+        <label for="password">Heslo</label>
+        <input type="password" name="password" class="form-control" id="password" />
+    </div>
+
+    <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+    <button type="submit" class="btn btn-primary">Přihlásit</button>
+</form>
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="text-danger">
+        @foreach (var err in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+        {
+            <div>@err.ErrorMessage</div>
+        }
+    </div>
+}
+
+<partial name="_ValidationScriptsPartial" />
