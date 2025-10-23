@@ -1,18 +1,22 @@
 @model PhotoApp.Models.PhotoRecord
 @{
     ViewData["Title"] = "Detail vzorku";
+
     // bezpečné získání publicUrl z ViewBag pokud controller nastavil, jinak sestavit zde
     var publicUrl = ViewBag.PublicUrl as string ?? Url.Action("DetailsAnonymous", "Home", new { id = Model.Id }, Context?.Request?.Scheme ?? "https");
     var qrApi = !string.IsNullOrWhiteSpace(publicUrl)
         ? "https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=" + System.Uri.EscapeDataString(publicUrl)
         : null;
+
     // použijeme ImagePath pokud existuje, jinak PhotoPath (kompatibilita)
     var imageSrc = !string.IsNullOrWhiteSpace(Model.ImagePath) ? Url.Content(Model.ImagePath) : (string.IsNullOrWhiteSpace(Model.PhotoPath) ? null : Url.Content(Model.PhotoPath));
+
+    string Safe(string s) => string.IsNullOrWhiteSpace(s) ? "-" : Html.Raw(Html.Encode(s)).ToString();
+    string SafeDate(DateTime dt) => (dt == DateTime.MinValue) ? "-" : dt.ToLocalTime().ToString("g");
 }
 <style>
     :root {
         --brand: #16a34a;
-        --brand-dark: #166534;
         --border: #dbe7d9;
         --bg: #f4fbf4;
         --text: #0b1f0b;
@@ -20,201 +24,223 @@
         --radius: 12px;
     }
 
-    body {
-        font-family: system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;
+    .detail-page {
+        max-width: 1100px;
+        margin: 30px auto;
+        padding: 16px;
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
         color: var(--text);
-        background: var(--bg);
     }
 
-    .detail-card {
-        background: #fff;
+    .card {
+        background: var(--white);
         border: 1px solid var(--border);
         border-radius: var(--radius);
-        padding: 2.5rem 2rem;
-        margin: 45px auto;
-        max-width: 640px;
-        box-shadow: 0 2px 8px rgba(0,0,0,.08);
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,.05);
+    }
+
+    .layout {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 20px;
+    }
+
+    .media {
         display: flex;
         flex-direction: column;
         align-items: center;
+        gap: 12px;
+    }
+
+        .media img.detail-img {
+            width: 280px;
+            height: 280px;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 1.5px solid var(--border);
+            background: #f7fef7;
+        }
+
+    .meta {
+        width: 100%;
         text-align: center;
     }
 
-    .detail-img {
-        width: 240px;
-        height: 240px;
-        object-fit: cover;
-        border-radius: 14px;
-        border: 1.5px solid var(--border);
-        margin-bottom: 1.4rem;
-        background: #e6f9e9;
+        .meta .title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--brand);
+            margin-bottom: 6px;
+        }
+
+    .qr {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
     }
 
-    .detail-title {
-        font-size: 2rem;
-        color: var(--brand-dark);
+        .qr img {
+            width: 160px;
+            height: 160px;
+            object-fit: contain;
+            border: 1px solid #e3e3e3;
+            background: #fff;
+            padding: 6px;
+        }
+
+    .fields {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0,1fr));
+        gap: 12px 20px;
+    }
+
+    .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .label {
         font-weight: 700;
-        margin-bottom: 0.6rem;
-    }
-
-    .detail-info {
-        margin-bottom: 1.2rem;
-        color: #444;
+        color: #333;
         width: 100%;
-        max-width: 520px;
-        text-align: left;
     }
 
-        .detail-info .row {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-
-        .detail-info strong {
-            width: 110px;
-            display: inline-block;
-            color: #222;
-        }
-
-    .pill {
-        display: inline-block;
-        padding: 2px 9px;
-        border-radius: 999px;
-        background: #eff9f0;
+    .value {
+        padding: 10px;
+        background: #fbfff9;
         border: 1px solid var(--border);
-        font-size: 15px;
-        color: var(--brand-dark);
-        margin-left: 6px;
+        border-radius: 8px;
+        min-height: 34px;
+        color: #222;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+
+    .full {
+        grid-column: 1 / -1;
     }
 
     .muted {
         color: #666;
-        font-size: 1rem;
-        margin-top: 1.3em;
+        font-size: 0.95rem;
+        margin-top: 10px;
+    }
+
+    .actions {
+        margin-top: 14px;
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
     }
 
     .btn {
-        padding: 8px 16px;
+        padding: 8px 14px;
         border-radius: 8px;
         border: 1px solid var(--border);
         background: var(--white);
-        color: var(--brand-dark);
-        cursor: pointer;
-        font-weight: 500;
-        margin-top: 2em;
+        color: var(--brand);
         text-decoration: none;
-        display: inline-block;
     }
 
-        .btn:hover {
-            background: #e6f9e9;
-        }
+    @@media (max-width:900px) {
+        .layout
 
-    .qr-block {
-        margin-top: 12px;
-        display: flex;
-        gap: 12px;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-    }
-
-    .qr-img {
-        width: 160px;
-        height: 160px;
-        border: 1px solid #ddd;
-        padding: 6px;
-        background: #fff;
-        display: inline-block;
-        object-fit: contain;
-    }
-
-    .qr-note {
-        font-size: .9rem;
-        color: #444;
-    }
-
-    /* responsive */
-    @@media (max-width: 640px) {
-        .detail-card {
-            padding: 1.6rem;
-            margin: 24px 12px;
-            max-width: calc(100% - 24px);
-        }
-
-        .detail-img {
-            width: 160px;
-            height: 160px;
-        }
-
-        .detail-info strong {
-            width: 120px;
-        }
-    }
-</style>
-
-<div class="detail-card">
-    @if (!string.IsNullOrEmpty(imageSrc))
     {
-        <img src="@imageSrc" class="detail-img" alt="Foto vzorku - @Model.Name" />
-    }
-    else
-    {
-        <div class="detail-img" aria-hidden="true" title="Žádný obrázek"> </div>
+        grid-template-columns: 1fr;
     }
 
-    <div class="detail-title">@Model.Name</div>
+    .media img.detail-img {
+        width: 200px;
+        height: 200px;
+    }
 
-    <div class="detail-info" aria-label="Informace o vzorku">
-        <div class="row"><strong>Kód:</strong> <span>@Model.Code</span></div>
-        <div class="row"><strong>Typ:</strong> <span>@Model.Type</span></div>
-        @if (!string.IsNullOrWhiteSpace(Model.Supplier))
-        {
-            <div class="row"><strong>Dodavatel:</strong> <span class="pill">@Model.Supplier</span></div>
-        }
-        @if (!string.IsNullOrWhiteSpace(Model.Material) || !string.IsNullOrWhiteSpace(Model.Form) || !string.IsNullOrWhiteSpace(Model.Filler))
-        {
-            <div class="row">
-                <strong>Specifikace:</strong>
-                <span>@Model.Material</span>
-                @if (!string.IsNullOrWhiteSpace(Model.Form))
+    .fields {
+        grid-template-columns: 1fr;
+    }
+
+    }</style>
+
+<main class="detail-page">
+    <div class="card layout" role="region" aria-label="Detail vzorku">
+        <aside class="media" aria-label="Obrázek a veřejný odkaz">
+            @if (!string.IsNullOrEmpty(imageSrc))
+            {
+                <img src="@imageSrc" alt="Fotografie vzorku: @Model.Name" class="detail-img" />
+            }
+            else
+            {
+                <div class="detail-img" aria-hidden="true" title="Žádný obrázek"></div>
+            }
+
+            <div class="meta">
+                <div class="title">@(!string.IsNullOrWhiteSpace(Model.Name) ? Model.Name : "-")</div>
+                <div class="muted">Upraveno: @SafeDate(Model.UpdatedAt)</div>
+            </div>
+
+            <div class="qr" aria-label="Veřejný odkaz a QR kód">
+                <div style="font-weight:700;">Veřejný odkaz (QR)</div>
+                @if (!string.IsNullOrWhiteSpace(qrApi))
                 {
-                    <span>· @Model.Form</span>
+                    <img src="@qrApi" alt="QR kód veřejného detailu" />
+                    <div><a href="@publicUrl" target="_blank" rel="noopener">Otevřít veřejný detail</a></div>
                 }
-                @if (!string.IsNullOrWhiteSpace(Model.Filler))
+                else
                 {
-                    <span>· plnivo: @Model.Filler</span>
+                    <div class="muted">Veřejný odkaz není dostupný.</div>
                 }
             </div>
-        }
-        @if (!string.IsNullOrWhiteSpace(Model.Color))
-        {
-            <div class="row"><strong>Barva:</strong> <span>@Model.Color</span></div>
-        }
-        @if (!string.IsNullOrWhiteSpace(Model.Mfi))
-        {
-            <div class="row"><strong>MFI:</strong> <span>@Model.Mfi</span></div>
-        }
-        <div class="row" style="margin-top:8px;"><strong>Poznámky:</strong> <div>@Model.Notes</div></div>
+        </aside>
+
+        <section>
+            <h2 style="margin-top:0;margin-bottom:12px;">Informace o vzorku</h2>
+
+            <div class="fields" aria-live="polite">
+                <div class="field"><div class="label">Pozice</div><div class="value">@Safe(Model.Position?.ToString())</div></div>
+                <div class="field"><div class="label">ID (externí)</div><div class="value">@Safe(Model.ExternalId)</div></div>
+
+                <div class="field full"><div class="label">Původní název</div><div class="value">@Safe(Model.OriginalName)</div></div>
+
+                <div class="field"><div class="label">Materiál</div><div class="value">@Safe(Model.Material)</div></div>
+                <div class="field"><div class="label">Forma</div><div class="value">@Safe(Model.Form)</div></div>
+
+                <div class="field"><div class="label">Plnivo</div><div class="value">@Safe(Model.Filler)</div></div>
+                <div class="field"><div class="label">Barva</div><div class="value">@Safe(Model.Color)</div></div>
+
+                <div class="field"><div class="label">MFI</div><div class="value">@Safe(Model.Mfi)</div></div>
+                <div class="field"><div class="label">Množství (měsíc)</div><div class="value">@Safe(Model.MonthlyQuantity?.ToString())</div></div>
+
+                <div class="field full"><div class="label">Název</div><div class="value">@Safe(Model.Name)</div></div>
+                <div class="field"><div class="label">Kód</div><div class="value">@Safe(Model.Code)</div></div>
+
+                <div class="field"><div class="label">Typ</div><div class="value">@Safe(Model.Type)</div></div>
+                <div class="field"><div class="label">Dodavatel</div><div class="value">@Safe(Model.Supplier)</div></div>
+
+                <div class="field full"><div class="label">Popis</div><div class="value">@Safe(Model.Description)</div></div>
+                <div class="field full"><div class="label">Poznámky</div><div class="value">@Safe(Model.Notes)</div></div>
+
+                <div class="field"><div class="label">ImagePath</div><div class="value">@Safe(Model.ImagePath)</div></div>
+                <div class="field"><div class="label">PhotoPath (legacy)</div><div class="value">@Safe(Model.PhotoPath)</div></div>
+
+                <div class="field"><div class="label">Id (interní)</div><div class="value">@Safe(Model.Id.ToString())</div></div>
+                <div class="field"><div class="label">Vytvořeno</div><div class="value">@SafeDate(Model.CreatedAt)</div></div>
+
+                <div class="field full">
+                    <div class="label">Další informace</div>
+                    <div class="value">
+                        <!-- případné další vlastnosti, pokud přidáš do modelu, vypiš je sem -->
+                        <!-- tady je místo pro budoucí rozšíření -->
+                        -
+                    </div>
+                </div>
+            </div>
+
+            <div class="actions">
+                <a asp-controller="Photos" asp-action="Index" class="btn">Zpět na katalog</a>
+                <a asp-controller="Photos" asp-action="Edit" asp-route-id="@Model.Id" class="btn">Upravit vzorek</a>
+            </div>
+        </section>
     </div>
-
-    <div class="qr-block" aria-label="Veřejný odkaz a QR kód">
-        <div><strong>Veřejný odkaz (QR):</strong></div>
-
-        @if (!string.IsNullOrWhiteSpace(qrApi))
-        {
-            <img src="@qrApi" alt="QR kód veřejného detailu" class="qr-img" />
-            <div class="qr-note"><a href="@publicUrl" target="_blank" rel="noopener">Otevřít veřejný detail</a></div>
-        }
-        else
-        {
-            <div class="qr-note">Veřejný odkaz není dostupný.</div>
-        }
-    </div>
-
-    <div class="muted">Upraveno: @((Model.UpdatedAt == DateTime.MinValue) ? "-" : Model.UpdatedAt.ToLocalTime().ToString("g"))</div>
-    <a asp-controller="Photos" asp-action="Index" class="btn">Zpět na katalog</a>
-</div>
+</main>
