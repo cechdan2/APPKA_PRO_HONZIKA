@@ -75,6 +75,34 @@ public class HomeController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    // POST: /Home/ClearPhotos
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ClearPhotos()
+    {
+        try
+        {
+            // naèteme všechny záznamy
+            var allPhotos = await _context.Photos.ToListAsync();
+
+            // pokud existují, smažeme je
+            if (allPhotos.Any())
+            {
+                _context.Photos.RemoveRange(allPhotos);
+                await _context.SaveChangesAsync();
+            }
+
+            TempData["Message"] = "Všechny záznamy v tabulce Photos byly odstranìny.";
+        }
+        catch (Exception ex)
+        {
+            TempData["Error"] = "Chyba pøi mazání: " + ex.Message;
+        }
+
+        return RedirectToAction("Index", "Photos");
+    }
+
+
     // GET: /Home/Details/{id}  (pøihlášený uživatel, zobrazí QR kód odkazující na veøejný detail)
     public async Task<IActionResult> Details(int id)
     {

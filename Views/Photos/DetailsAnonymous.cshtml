@@ -56,6 +56,14 @@
         color: #444;
     }
 
+    /* zvýrazněné popisky */
+    .label {
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--brand);
+        margin-bottom: 4px;
+    }
+
     .pill {
         display: inline-block;
         padding: 2px 9px;
@@ -90,16 +98,35 @@
 </style>
 
 <div class="detail-card">
-    @if (!string.IsNullOrEmpty(Model.PhotoPath))
+    @if (!string.IsNullOrEmpty(Model.ImagePath ?? Model.PhotoPath))
     {
-        <img src="@Url.Content(Model.PhotoPath)" class="detail-img" alt="Foto vzorku" />
+        <img src="@Url.Content(Model.ImagePath ?? Model.PhotoPath)" class="detail-img" alt="Foto vzorku" />
     }
     <div class="detail-title">@Model.Name</div>
     <div class="detail-info">
-        <div><strong>Kód:</strong> @Model.Code</div>
-        <div><strong>Typ:</strong> @Model.Type</div>
-        @* Dodavatel je záměrně vynechán ve veřejném detailu *@
-        <div style="margin-top:12px;"><strong>Poznámky:</strong> @Model.Notes</div>
+        <div class="field full">
+            <div class="label">Název</div>
+            <div class="value">@Model.OriginalName</div>
+        </div>
+        <div class="field">
+            <div class="label">Plnivo</div>
+            <div class="value">@Model.Filler</div>
+        </div>
+        <div class="field">
+            <div class="label">Barva</div>
+            <div class="value">@Model.Color</div>
+        </div>
+        <div class="field">
+            <div class="label">Množství (měsíc)</div>
+            <div class="value">@Model.MonthlyQuantity</div>
+        </div>
+        <div class="field">
+            <div class="label">MFI</div>
+            <div class="value">@Model.Mfi</div>
+        </div>
+        <div class="field full">
+            <div class="label">Poznámky</div>
+            <div class="value">@Model.Notes</div>
+        </div>
     </div>
-    <div class="muted">Upraveno: @((Model.UpdatedAt == DateTime.MinValue) ? "-" : Model.UpdatedAt.ToLocalTime().ToString("g"))</div>
 </div>

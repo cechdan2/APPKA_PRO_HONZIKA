@@ -297,6 +297,15 @@
         <form method="get" style="flex:1">
             <input type="search" name="search" placeholder="Hledat…" value="@(Context.Request.Query["search"])" style="width:100%;padding:7px;border-radius:7px;border:1px solid #dbe7d9;">
         </form>
+
+        @if (User?.Identity?.IsAuthenticated ?? false)
+        {
+            <form asp-controller="Home" asp-action="ClearPhotos" method="post"
+                  onsubmit="return confirm('Opravdu vymazat všechny fotky? Tuto akci nelze vrátit zpět.');">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="destructive pill">Vymazat všechny fotky</button>
+            </form>
+        }
     </div>
 
     <div class="header-right" style="margin-top:8px;">
