@@ -1,12 +1,13 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using OfficeOpenXml;
 using PhotoApp.Data;
 using PhotoApp.Models;
+using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
-using System.IO.Compression;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Hosting;
 
 namespace PhotoApp.Controllers;
 
@@ -299,42 +300,79 @@ public class PhotosController : Controller
     }
 
     // --- Export ZIP (CSV + obrázky) ---
+    // --- Export ZIP (CSV + obrázky) ---
+    // --- Export ZIP (CSV + obrázky) ---
     [HttpGet]
+
     public async Task<IActionResult> ExportZip()
     {
-        var photos = await _context.Photos.OrderByDescending(x => x.UpdatedAt).ToListAsync();
+        // Seřadíme podle ID (resp. pořadí importu), aby se obrázky nikdy nepřeházely
+        var photos = await _context.Photos
+            .OrderBy(p => p.Id)
+            .ToListAsync();
 
-        var sb = new StringBuilder();
-        sb.AppendLine("Id;Name;Code;Type;Supplier;Notes;PhotoPath;UpdatedAt");
-        foreach (var p in photos)
-            sb.AppendLine($"{p.Id};{p.Name};{p.Code};{p.Type};{p.Supplier};{p.Notes};{Path.GetFileName(p.PhotoPath)};{p.UpdatedAt:yyyy-MM-dd HH:mm}");
+        using var package = new ExcelPackage();
+        var ws = package.Workbook.Worksheets.Add("Vzorky");
 
-        using (var ms = new MemoryStream())
+        // hlavičky podle importní šablony
+        var headers = new[]
         {
-            using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, true))
-            {
-                var csvEntry = zip.CreateEntry("vzorky.csv");
-                using (var entryStream = csvEntry.Open())
-                using (var sw = new StreamWriter(entryStream, Encoding.UTF8))
-                    sw.Write(sb.ToString());
+        "Position","ExternalId","Supplier","OriginalName",
+        "Material","Form","Filler","Color",
+        "Description","MonthlyQuantity","MFI","Notes","Photo"
+    };
+        for (int c = 0; c < headers.Length; c++)
+        {
+            ws.Cells[1, c + 1].Value = headers[c];
+            ws.Cells[1, c + 1].Style.Font.Bold = true;
+        }
 
-                foreach (var p in photos)
+        // data + obrázky
+        for (int i = 0; i < photos.Count; i++)
+        {
+            var p = photos[i];
+            int row = i + 2;
+
+            ws.Cells[row, 1].Value = p.Position;
+            ws.Cells[row, 2].Value = p.ExternalId;
+            ws.Cells[row, 3].Value = p.Supplier;
+            ws.Cells[row, 4].Value = p.OriginalName;
+            ws.Cells[row, 5].Value = p.Material;
+            ws.Cells[row, 6].Value = p.Form;
+            ws.Cells[row, 7].Value = p.Filler;
+            ws.Cells[row, 8].Value = p.Color;
+            ws.Cells[row, 9].Value = p.Description;
+            ws.Cells[row, 10].Value = p.MonthlyQuantity;
+            ws.Cells[row, 11].Value = p.Mfi;
+            ws.Cells[row, 12].Value = p.Notes;
+
+            // vložení obrázku do sloupce 13 (Photo)
+            if (!string.IsNullOrEmpty(p.ImagePath))
+            {
+                var relative = p.ImagePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+                var fullPath = Path.Combine(_env.WebRootPath, relative);
+                if (System.IO.File.Exists(fullPath))
                 {
-                    if (!string.IsNullOrEmpty(p.PhotoPath))
-                    {
-                        var filePath = Path.Combine(_env.WebRootPath, p.PhotoPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
-                        if (System.IO.File.Exists(filePath))
-                        {
-                            var entry = zip.CreateEntry("uploads/" + Path.GetFileName(p.PhotoPath));
-                            using (var fileStream = System.IO.File.OpenRead(filePath))
-                            using (var zipStream = entry.Open())
-                                await fileStream.CopyToAsync(zipStream);
-                        }
-                    }
+                    using var stream = System.IO.File.OpenRead(fullPath);
+                    var pic = ws.Drawings.AddPicture($"img_{row}", stream);
+
+                    // přesně do buňky M{row}
+                    pic.From.Row = row - 1;    // EPPlus používá 0-based index
+                    pic.From.Column = 12;      // sloupec M = 12 (0-based)
+                    pic.SetSize(80, 80);       // velikost obrázku
+                    ws.Row(row).Height = 60;   // nastavíme výšku řádku tak, aby obrázek seděl
                 }
             }
 
-            return File(ms.ToArray(), "application/zip", "vzorky.zip");
         }
+
+        // automatické zalamování a šířky
+        ws.Cells[1, 1, photos.Count + 1, headers.Length].AutoFitColumns();
+        ws.Column(13).Width = 15;
+
+        var bytes = package.GetAsByteArray();
+        return File(bytes,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "vzorky_s_obrazky.xlsx");
     }
 }
