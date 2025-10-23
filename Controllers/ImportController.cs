@@ -13,6 +13,7 @@ using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -34,256 +35,299 @@ public partial class PhotosController : Controller
 
     // POST: /Photos/Import
     // POST: /Photos/Import
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Import(IFormFile excelFile)
+    // Vložte tento kód jako metodu uvnitř stávající třídy PhotosController
+
+
+[HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> Import(IFormFile excelFile)
+{
+    if (excelFile == null || excelFile.Length == 0)
     {
-        if (excelFile == null || excelFile.Length == 0)
-        {
-            ModelState.AddModelError("", "Nahrajte .xlsx soubor s daty.");
-            return View();
-        }
+        ModelState.AddModelError("", "Nahrajte .xlsx soubor s daty.");
+        return View();
+    }
 
-        // --- Nastavení licence EPPlus (robustně přes reflexi, aby to fungovalo napříč verzemi) ---
-        try
-        {
-            var excelPackageType = typeof(ExcelPackage);
+    try { OfficeOpenXml.ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial; } catch { }
 
-            // 1) zkusit novější statickou property "License"
-            var licenseProp = excelPackageType.GetProperty("License", BindingFlags.Public | BindingFlags.Static);
-            if (licenseProp != null && licenseProp.CanWrite)
+    var uploadsFolder = Path.Combine(_env.WebRootPath, "uploads");
+    if (!Directory.Exists(uploadsFolder))
+        Directory.CreateDirectory(uploadsFolder);
+
+    var imported = new List<PhotoRecord>();
+    var warnings = new List<string>();
+
+    try
+    {
+        // načteme celý upload do paměti (můžeme ho použít pro EPPlus i pro ZIP)
+        using (var ms = new MemoryStream())
+        {
+            await excelFile.CopyToAsync(ms);
+            ms.Position = 0;
+
+            // 1) EXTRAKCE media souborů z xl/media/ (ZIP)
+            var mediaList = new List<(byte[] Bytes, string FileName)>();
+            using (var zip = new ZipArchive(new MemoryStream(ms.ToArray()), ZipArchiveMode.Read, false))
             {
-                var licensePropType = licenseProp.PropertyType;
+                // najdeme všechny položky, které jsou v xl/media/
+                var entries = zip.Entries
+                                 .Where(e => e.FullName.StartsWith("xl/media/", StringComparison.OrdinalIgnoreCase))
+                                 .OrderBy(e => e.FullName) // image1.png, image2.jpeg ...
+                                 .ToList();
 
-                // pokud property přímo přijímá enum OfficeOpenXml.LicenseContext (některé verze)
-                if (licensePropType == typeof(OfficeOpenXml.LicenseContext))
+                foreach (var e in entries)
                 {
-                    licenseProp.SetValue(null, OfficeOpenXml.LicenseContext.NonCommercial);
-                }
-                else
-                {
-                    // vytvořit instanci typu property a nastavit v ní Context pokud existuje
-                    var licenseInstance = Activator.CreateInstance(licensePropType);
-                    var contextProp = licensePropType.GetProperty("Context", BindingFlags.Public | BindingFlags.Instance);
-                    if (contextProp != null && contextProp.CanWrite && contextProp.PropertyType == typeof(OfficeOpenXml.LicenseContext))
+                    using (var s = e.Open())
+                    using (var mem = new MemoryStream())
                     {
-                        contextProp.SetValue(licenseInstance, OfficeOpenXml.LicenseContext.NonCommercial);
-                    }
-                    licenseProp.SetValue(null, licenseInstance);
-                }
-            }
-            else
-            {
-                // 2) fallback na starší API: LicenseContext (pokud existuje a zapisatelné)
-                var licenseContextProp = excelPackageType.GetProperty("LicenseContext", BindingFlags.Public | BindingFlags.Static);
-                if (licenseContextProp != null && licenseContextProp.CanWrite)
-                {
-                    // nastavit staré LicenseContext
-                    licenseContextProp.SetValue(null, OfficeOpenXml.LicenseContext.NonCommercial);
-                }
-                else
-                {
-                    // pokud nelze nastavit ani jedním způsobem, přidej varování (nepřerušujeme import)
-                    // V některých verzích může být licence pouze pro čtení nebo nastavena jinak; pokud narazíte na chybu, nastavte to v Program.cs při startu
-                    // Např. Console.WriteLine("EPPlus license property not writable - please configure license in startup.");
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            // varování, ale nepřerušujeme (import může selhat později pokud EPPlus skutečně vyžaduje nastavení)
-            // můžete také vrátit View s chybou, pokud preferujete
-            ModelState.AddModelError("", $"Pozor: nastavení licence EPPlus selhalo: {ex.Message}");
-            // continue - EPPlus může i tak fungovat pokud licence již byla nastavena jinde
-        }
-
-        // --- pokračování importu ---
-        var uploadsFolder = Path.Combine(_env.WebRootPath, "uploads");
-        if (!Directory.Exists(uploadsFolder))
-            Directory.CreateDirectory(uploadsFolder);
-
-        var imported = new List<PhotoRecord>();
-        var warnings = new List<string>();
-
-        using (var stream = excelFile.OpenReadStream())
-        using (var package = new ExcelPackage(stream))
-        {
-            var ws = package.Workbook.Worksheets.FirstOrDefault();
-            if (ws == null)
-            {
-                ModelState.AddModelError("", "Soubor neobsahuje žádný list.");
-                return View();
-            }
-
-            var startRow = 2;
-            var endRow = ws.Dimension?.End.Row ?? 1;
-
-            int colPozice = 1;      // A
-            int colExternalId = 2;  // B
-            int colSupplier = 3;    // C
-            int colOriginalName = 4;// D
-            int colMaterial = 5;    // E
-            int colForm = 6;        // F
-            int colFiller = 7;      // G
-            int colColor = 8;       // H
-            int colDescription = 9; // I
-            int colMonthlyQuantity = 10; // J
-            int colMfi = 11;        // K
-            int colNotes = 12;      // L
-            int colPhoto = 13;      // M
-
-            // získej vložené obrázky
-            var pictures = ws.Drawings.OfType<ExcelPicture>().ToList();
-
-            for (int row = startRow; row <= endRow; row++)
-            {
-                // přeskočit prázdné řádky
-                bool rowEmpty = true;
-                for (int c = 1; c <= colNotes; c++)
-                {
-                    if (!string.IsNullOrWhiteSpace(ws.Cells[row, c].Text))
-                    {
-                        rowEmpty = false;
-                        break;
+                        await s.CopyToAsync(mem);
+                        mediaList.Add((mem.ToArray(), Path.GetFileName(e.FullName)));
                     }
                 }
-                if (rowEmpty) continue;
+            }
 
-                var rec = new PhotoRecord
+            // 2) Otevřeme EPPlus ze stejného streamu (resetujeme pozici)
+            ms.Position = 0;
+            using (var package = new OfficeOpenXml.ExcelPackage(ms))
+            {
+                var ws = package.Workbook.Worksheets.FirstOrDefault();
+                if (ws == null)
                 {
-                    Position = ws.Cells[row, colPozice].GetValue<string>()?.Trim(),
-                    ExternalId = ws.Cells[row, colExternalId].GetValue<string>()?.Trim(),
-                    Supplier = ws.Cells[row, colSupplier].GetValue<string>()?.Trim() ?? "",
-                    OriginalName = ws.Cells[row, colOriginalName].GetValue<string>()?.Trim() ?? "",
-                    Material = ws.Cells[row, colMaterial].GetValue<string>()?.Trim(),
-                    Form = ws.Cells[row, colForm].GetValue<string>()?.Trim(),
-                    Filler = ws.Cells[row, colFiller].GetValue<string>()?.Trim(),
-                    Color = ws.Cells[row, colColor].GetValue<string>()?.Trim(),
-                    Description = ws.Cells[row, colDescription].GetValue<string>()?.Trim(),
-                    MonthlyQuantity = ws.Cells[row, colMonthlyQuantity].GetValue<string>()?.Trim(),
-                    Mfi = ws.Cells[row, colMfi].GetValue<string>()?.Trim(),
-                    Notes = ws.Cells[row, colNotes].GetValue<string>()?.Trim() ?? "",
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
-
-                ExcelPicture? pic = pictures.FirstOrDefault(p =>
-                {
-                    int picFromRow = p.From.Row + 1;
-                    int picFromCol = p.From.Column + 1;
-                    return picFromRow == row && picFromCol == colPhoto;
-                });
-
-                if (pic == null)
-                {
-                    pic = pictures.FirstOrDefault(p =>
-                    {
-                        int fromRow = p.From.Row + 1;
-                        int fromCol = p.From.Column + 1;
-                        int toRow = p.To.Row + 1;
-                        int toCol = p.To.Column + 1;
-                        return row >= fromRow && row <= toRow && colPhoto >= fromCol && colPhoto <= toCol;
-                    });
+                    ModelState.AddModelError("", "Soubor neobsahuje žádný list.");
+                    return View();
                 }
 
-                if (pic != null)
+                var startRow = 2;
+                var endRow = ws.Dimension?.End.Row ?? 1;
+
+                int colPozice = 1;      // A
+                int colExternalId = 2;  // B
+                int colSupplier = 3;    // C
+                int colOriginalName = 4;// D
+                int colMaterial = 5;    // E
+                int colForm = 6;        // F
+                int colFiller = 7;      // G
+                int colColor = 8;       // H
+                int colDescription = 9; // I
+                int colMonthlyQuantity = 10; // J
+                int colMfi = 11;        // K
+                int colNotes = 12;      // L
+                int colPhoto = 13;      // M
+
+                var drawings = ws.Drawings.ToList();
+                var pictures = drawings.OfType<OfficeOpenXml.Drawing.ExcelPicture>().ToList();
+                warnings.Add($"Worksheet '{ws.Name}': drawings={drawings.Count}, pictures={pictures.Count}, mediaFiles={mediaList.Count}");
+
+                // vytvoříme mapu index->media podle pořadí; použijeme pokud nelze extrahovat bytes z pic
+                // Pozn.: v mnoha xlsx souborech pořadí picture kolekce odpovídá imageN pořadí v xl/media
+                var mediaByIndex = mediaList;
+
+                for (int row = startRow; row <= endRow; row++)
                 {
-                    try
+                    bool rowEmpty = true;
+                    for (int c = 1; c <= colNotes; c++)
                     {
-                        byte[]? imgBytes = null;
-                        string ext = ".png";
-
-                        object? imageObj = (object?)pic.Image;
-
-                        if (imageObj is System.Drawing.Image sysImg)
+                        if (!string.IsNullOrWhiteSpace(ws.Cells[row, c].Text))
                         {
-                            using (var msImg = new MemoryStream())
-                            {
-                                var rawFormat = sysImg.RawFormat;
-                                if (ImageFormat.Jpeg.Equals(rawFormat)) ext = ".jpg";
-                                else if (ImageFormat.Png.Equals(rawFormat)) ext = ".png";
-                                else if (ImageFormat.Gif.Equals(rawFormat)) ext = ".gif";
-                                else ext = ".png";
-
-                                sysImg.Save(msImg, rawFormat);
-                                imgBytes = msImg.ToArray();
-                            }
+                            rowEmpty = false;
+                            break;
                         }
-                        else if (imageObj != null)
+                    }
+                    if (rowEmpty) continue;
+
+                    var rec = new PhotoRecord
+                    {
+                        Position = ws.Cells[row, colPozice].GetValue<string>()?.Trim(),
+                        ExternalId = ws.Cells[row, colExternalId].GetValue<string>()?.Trim(),
+                        Supplier = ws.Cells[row, colSupplier].GetValue<string>()?.Trim() ?? "",
+                        OriginalName = ws.Cells[row, colOriginalName].GetValue<string>()?.Trim() ?? "",
+                        Material = ws.Cells[row, colMaterial].GetValue<string>()?.Trim(),
+                        Form = ws.Cells[row, colForm].GetValue<string>()?.Trim(),
+                        Filler = ws.Cells[row, colFiller].GetValue<string>()?.Trim(),
+                        Color = ws.Cells[row, colColor].GetValue<string>()?.Trim(),
+                        Description = ws.Cells[row, colDescription].GetValue<string>()?.Trim(),
+                        MonthlyQuantity = ws.Cells[row, colMonthlyQuantity].GetValue<string>()?.Trim(),
+                        Mfi = ws.Cells[row, colMfi].GetValue<string>()?.Trim(),
+                        Notes = ws.Cells[row, colNotes].GetValue<string>()?.Trim() ?? "",
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+
+                    // najít obrázek pro tuto buňku/řádek
+                    OfficeOpenXml.Drawing.ExcelPicture? pic = pictures.FirstOrDefault(p =>
+                    {
+                        int picFromRow = p.From.Row + 1;
+                        int picFromCol = p.From.Column + 1;
+                        return picFromRow == row && picFromCol == colPhoto;
+                    });
+
+                    if (pic == null)
+                    {
+                        pic = pictures.FirstOrDefault(p =>
                         {
-                            var propBytes = imageObj.GetType().GetProperty("Bytes")?.GetValue(imageObj) as byte[];
-                            if (propBytes != null)
+                            int fromRow = p.From.Row + 1;
+                            int fromCol = p.From.Column + 1;
+                            int toRow = p.To.Row + 1;
+                            int toCol = p.To.Column + 1;
+                            return row >= fromRow && row <= toRow && colPhoto >= fromCol && colPhoto <= toCol;
+                        });
+                    }
+
+                    if (pic != null)
+                    {
+                        try
+                        {
+                            byte[]? imgBytes = null;
+                            string ext = ".png";
+
+                            // 3A) POKUSÍME SE z ExcelPicture získat bajty (některé verze EPPlus poskytují Image/Bytes)
+                            try
                             {
-                                imgBytes = propBytes;
-                                var propContentType = imageObj.GetType().GetProperty("ContentType")?.GetValue(imageObj) as string;
-                                if (!string.IsNullOrWhiteSpace(propContentType))
+                                // reflexní pokusy (nejsou závislé na konkrétní property name; zkusíme několik variant)
+                                var picType = pic.GetType();
+
+                                // common: vlastnost "Image" může vrátit interní objekt; ten může mít "ImageBytes" / "Bytes" / "GetBytes" atd.
+                                var propImage = picType.GetProperty("Image")?.GetValue(pic);
+                                if (propImage != null)
                                 {
-                                    if (propContentType.Contains("jpeg") || propContentType.Contains("jpg")) ext = ".jpg";
-                                    else if (propContentType.Contains("png")) ext = ".png";
-                                    else if (propContentType.Contains("gif")) ext = ".gif";
+                                    // zkusíme vlastnosti Bytes / ImageBytes
+                                    var pb = propImage.GetType().GetProperty("ImageBytes")?.GetValue(propImage) as byte[];
+                                    if (pb == null) pb = propImage.GetType().GetProperty("Bytes")?.GetValue(propImage) as byte[];
+
+                                    if (pb == null)
+                                    {
+                                        var mGet = propImage.GetType().GetMethod("GetBytes") ?? propImage.GetType().GetMethod("GetImageBytes") ?? propImage.GetType().GetMethod("ToArray");
+                                        if (mGet != null)
+                                        {
+                                            var res = mGet.Invoke(propImage, null);
+                                            if (res is byte[] bb) pb = bb;
+                                        }
+                                    }
+
+                                    imgBytes = pb;
                                 }
+
+                                // další fallback: samotný pic může mít Bytes/ImageBytes/GetBytes
+                                if (imgBytes == null)
+                                {
+                                    var maybe = picType.GetProperty("ImageBytes")?.GetValue(pic) as byte[]
+                                                ?? picType.GetProperty("Bytes")?.GetValue(pic) as byte[];
+                                    if (imgBytes == null)
+                                    {
+                                        var m = picType.GetMethod("GetBytes") ?? picType.GetMethod("ToArray") ?? picType.GetMethod("GetImageData");
+                                        if (m != null)
+                                        {
+                                            var res = m.Invoke(pic, null);
+                                            if (res is byte[] b2) imgBytes = b2;
+                                        }
+                                    }
+                                }
+
+                                // někdy lze získat System.Drawing.Image přímo
+                                if (imgBytes == null)
+                                {
+                                    var propSysImg = picType.GetProperty("Image")?.GetValue(pic) as System.Drawing.Image;
+                                    if (propSysImg != null)
+                                    {
+                                        using (var msImg = new MemoryStream())
+                                        {
+                                            propSysImg.Save(msImg, propSysImg.RawFormat);
+                                            imgBytes = msImg.ToArray();
+                                        }
+                                    }
+                                }
+                            }
+                            catch
+                            {
+                                // ignorujeme chyby reflexe zde; použijeme fallback níže
+                            }
+
+                            // 3B) pokud se nepodařilo, použijeme fallback z xl/media podle indexu
+                            if ((imgBytes == null || imgBytes.Length == 0) && pictures.IndexOf(pic) >= 0)
+                            {
+                                int picIndex = pictures.IndexOf(pic); // 0-based
+                                if (picIndex < mediaByIndex.Count)
+                                {
+                                    imgBytes = mediaByIndex[picIndex].Bytes;
+                                    var mediaFileName = mediaByIndex[picIndex].FileName;
+                                    ext = Path.GetExtension(mediaFileName) ?? ".png";
+                                }
+                            }
+
+                            // další fallback: pokud stále žádné bajty, pokusíme se najít první media (bezpečnostně)
+                            if ((imgBytes == null || imgBytes.Length == 0) && mediaByIndex.Any())
+                            {
+                                imgBytes = mediaByIndex.First().Bytes;
+                                ext = Path.GetExtension(mediaByIndex.First().FileName) ?? ".png";
+                                warnings.Add($"Řádek {row}: použito první media jako fallback.");
+                            }
+
+                            // uložení souboru
+                            if (imgBytes != null && imgBytes.Length > 0)
+                            {
+                                if (imgBytes.Length >= 4)
+                                {
+                                    if (imgBytes[0] == 0xFF && imgBytes[1] == 0xD8) ext = ".jpg";
+                                    else if (imgBytes[0] == 0x89 && imgBytes[1] == 0x50) ext = ".png";
+                                    else if (imgBytes[0] == 0x47 && imgBytes[1] == 0x49) ext = ".gif";
+                                    else if (imgBytes[0] == 0x42 && imgBytes[1] == 0x4D) ext = ".bmp";
+                                }
+
+                                var fileName = $"{Guid.NewGuid()}{ext}";
+                                var filePath = Path.Combine(uploadsFolder, fileName);
+                                await System.IO.File.WriteAllBytesAsync(filePath, imgBytes);
+
+                                rec.PhotoFileName = fileName;
+                                rec.ImagePath = "/uploads/" + fileName;
                             }
                             else
                             {
-                                var m = imageObj.GetType().GetMethod("GetBytes") ?? imageObj.GetType().GetMethod("ToArray");
-                                if (m != null)
-                                {
-                                    var result = m.Invoke(imageObj, null);
-                                    if (result is byte[] bb) imgBytes = bb;
-                                }
+                                warnings.Add($"Řádek {row}: obrázek nalezen, ale nepodařilo se získat bajty (typ: {pic.GetType().FullName}).");
                             }
                         }
-
-                        if (imgBytes != null && imgBytes.Length > 0)
+                        catch (Exception ex)
                         {
-                            var fileName = $"{Guid.NewGuid()}{ext}";
-                            var filePath = Path.Combine(uploadsFolder, fileName);
-                            await System.IO.File.WriteAllBytesAsync(filePath, imgBytes);
-
-                            rec.PhotoFileName = fileName;
-                            rec.ImagePath = "/uploads/" + fileName;
-                        }
-                        else
-                        {
-                            warnings.Add($"Řádek {row}: obrázek nalezen, ale nelze získat byty (neznámý typ obrázku).");
+                            warnings.Add($"Řádek {row}: chyba ukládání obrázku - {ex.Message}");
                         }
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        warnings.Add($"Řádek {row}: chyba ukládání obrázku - {ex.Message}");
-                    }
-                }
-                else
-                {
-                    var photoCellText = ws.Cells[row, colPhoto].GetValue<string>()?.Trim();
-                    if (!string.IsNullOrEmpty(photoCellText))
-                    {
-                        if (Uri.IsWellFormedUriString(photoCellText, UriKind.Absolute))
+                        var photoCellText = ws.Cells[row, colPhoto].GetValue<string>()?.Trim();
+                        if (!string.IsNullOrEmpty(photoCellText))
                         {
-                            rec.ImagePath = photoCellText;
-                            rec.PhotoFileName = Path.GetFileName(photoCellText);
-                        }
-                        else
-                        {
-                            rec.PhotoFileName = photoCellText;
-                            warnings.Add($"Řádek {row}: fotka uvedena jako text ({photoCellText}), nebyla zkopírována.");
+                            if (Uri.IsWellFormedUriString(photoCellText, UriKind.Absolute))
+                            {
+                                rec.ImagePath = photoCellText;
+                                rec.PhotoFileName = Path.GetFileName(photoCellText);
+                            }
+                            else
+                            {
+                                rec.PhotoFileName = photoCellText;
+                                warnings.Add($"Řádek {row}: fotka uvedena jako text ({photoCellText}), nebyla zkopírována.");
+                            }
                         }
                     }
-                }
 
-                imported.Add(rec);
-            }
-        }
-
-        if (imported.Any())
-        {
-            _context.Photos.AddRange(imported);
-            await _context.SaveChangesAsync();
-        }
-
-        TempData["ImportResult"] = $"{imported.Count} záznamů importováno. Varování: {warnings.Count}";
-        TempData["ImportWarnings"] = string.Join(" | ", warnings);
-
-        return RedirectToAction(nameof(Index));
+                    imported.Add(rec);
+                } // for rows
+            } // using package
+        } // using ms
     }
+    catch (Exception exOuter)
+    {
+        warnings.Add("Exception při čtení souboru: " + exOuter.Message);
+    }
+
+    if (imported.Any())
+    {
+        _context.Photos.AddRange(imported);
+        await _context.SaveChangesAsync();
+    }
+
+    TempData["ImportResult"] = $"{imported.Count} záznamů importováno. Varování: {warnings.Count}";
+    TempData["ImportWarnings"] = string.Join("\n", warnings);
+
+    return RedirectToAction(nameof(Index));
+}
+
 }

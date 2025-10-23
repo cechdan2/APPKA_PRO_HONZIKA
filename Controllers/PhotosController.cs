@@ -10,12 +10,12 @@ using Microsoft.AspNetCore.Hosting;
 
 namespace PhotoApp.Controllers;
 
-[Authorize] // celý kontroler chráněn; pokud chcete veřejný index, přidejte [AllowAnonymous] nad Index()
+[Authorize]
 public class PhotosController : Controller
 {
     private readonly AppDbContext _context;
     private readonly IWebHostEnvironment _env;
-    private const long MaxFileSize = 5 * 1024 * 1024; // 5 MB - upravte dle potřeby
+    private const long MaxFileSize = 5 * 1024 * 1024; // 5 MB
     private static readonly string[] PermittedTypes = { "image/jpeg", "image/png", "image/gif", "image/webp" };
 
     public PhotosController(AppDbContext context, IWebHostEnvironment env)
@@ -24,13 +24,13 @@ public class PhotosController : Controller
         _env = env;
     }
 
-
     public IActionResult Import()
     {
-        return View(); // vrátí Views/Photos/Import.cshtml
+        return View();
     }
 
-    // GET: Photos
+
+
     [AllowAnonymous]
     public async Task<IActionResult> Index(string? search)
     {
@@ -54,27 +54,26 @@ public class PhotosController : Controller
     // POST: Photos/Create
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([Bind("Name,Code,Type,Supplier,Notes")] PhotoRecord photo, IFormFile? PhotoFile)
+    public async Task<IActionResult> Create(PhotoRecord photoModel, IFormFile? PhotoFile)
     {
+        // Pozn.: photoModel je to, co se vázalo z formu. Nechceme používat Bind(...) takto široce.
         if (!ModelState.IsValid)
-            return View(photo);
+            return View(photoModel);
 
-        photo.UpdatedAt = DateTime.UtcNow;
-        photo.CreatedAt = DateTime.UtcNow;
-
-        // Uložení fotky do wwwroot/uploads
+        // zpracuj nahrání souboru (pokud je)
+        string? savedPath = null;
         if (PhotoFile != null && PhotoFile.Length > 0)
         {
             if (PhotoFile.Length > MaxFileSize)
             {
                 ModelState.AddModelError("PhotoFile", "Soubor je příliš velký.");
-                return View(photo);
+                return View(photoModel);
             }
 
             if (!PermittedTypes.Contains(PhotoFile.ContentType))
             {
                 ModelState.AddModelError("PhotoFile", "Nepodporovaný typ souboru.");
-                return View(photo);
+                return View(photoModel);
             }
 
             var uploads = Path.Combine(_env.WebRootPath, "uploads");
@@ -89,8 +88,34 @@ public class PhotosController : Controller
                 await PhotoFile.CopyToAsync(stream);
             }
 
-            photo.PhotoPath = "/uploads/" + fileName;
+            savedPath = "/uploads/" + fileName;
         }
+
+        // Explicitní mapování — vytvoříme novou entitu a přiřadíme všechna relevantní pole
+        var photo = new PhotoRecord
+        {
+            // Zkopíruj všechna pole, která máš ve view
+            Position = photoModel.Position,
+            ExternalId = photoModel.ExternalId,
+            OriginalName = photoModel.OriginalName,
+            Material = photoModel.Material,
+            Form = photoModel.Form,
+            Filler = photoModel.Filler,
+            Color = photoModel.Color,
+            Mfi = photoModel.Mfi,
+            MonthlyQuantity = photoModel.MonthlyQuantity,
+            Name = photoModel.Name,
+            Code = photoModel.Code,
+            Type = photoModel.Type,
+            Supplier = photoModel.Supplier,
+            Description = photoModel.Description,
+            Notes = photoModel.Notes,
+            // cesta k fotce z uploadu (pokud byla)
+            PhotoPath = savedPath ?? photoModel.PhotoPath,
+            ImagePath = photoModel.ImagePath, // pokud používáš ImagePath
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
 
         _context.Add(photo);
         await _context.SaveChangesAsync();
@@ -113,33 +138,33 @@ public class PhotosController : Controller
     // POST: Photos/Edit/5
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Code,Type,Supplier,Notes,PhotoPath")] PhotoRecord photo, IFormFile? PhotoFile)
+    public async Task<IActionResult> Edit(int id, PhotoRecord photoModel, IFormFile? PhotoFile)
     {
-        if (id != photo.Id)
+        if (id != photoModel.Id)
             return NotFound();
 
         if (!ModelState.IsValid)
-            return View(photo);
+            return View(photoModel);
 
         try
         {
-            // načtěte aktuální záznam z DB pro zjištění staré cesty
-            var existing = await _context.Photos.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id);
+            // Načteme existující entitu z DB a explicitně ji aktualizujeme (bez overpostingu)
+            var existing = await _context.Photos.FirstOrDefaultAsync(p => p.Id == id);
             if (existing == null) return NotFound();
 
-            // pokud je nový soubor, nahradíme a smažeme starý
+            // zpracování nového souboru (pokud existuje)
             if (PhotoFile != null && PhotoFile.Length > 0)
             {
                 if (PhotoFile.Length > MaxFileSize)
                 {
                     ModelState.AddModelError("PhotoFile", "Soubor je příliš velký.");
-                    return View(photo);
+                    return View(photoModel);
                 }
 
                 if (!PermittedTypes.Contains(PhotoFile.ContentType))
                 {
                     ModelState.AddModelError("PhotoFile", "Nepodporovaný typ souboru.");
-                    return View(photo);
+                    return View(photoModel);
                 }
 
                 var uploads = Path.Combine(_env.WebRootPath, "uploads");
@@ -154,7 +179,7 @@ public class PhotosController : Controller
                     await PhotoFile.CopyToAsync(stream);
                 }
 
-                // smaž starý soubor pokud existuje
+                // smazání starého souboru pokud existuje
                 if (!string.IsNullOrEmpty(existing.PhotoPath))
                 {
                     var oldPath = Path.Combine(_env.WebRootPath, existing.PhotoPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
@@ -164,22 +189,37 @@ public class PhotosController : Controller
                     }
                 }
 
-                photo.PhotoPath = "/uploads/" + fileName;
+                existing.PhotoPath = "/uploads/" + fileName;
             }
-            else
-            {
-                // pokud nebyl nahrán nový soubor, zachovej starou cestu z DB
-                photo.PhotoPath = existing.PhotoPath;
-            }
+            // jinak necháme existing.PhotoPath beze změny (nerozepisujeme z modelu)
 
-            photo.UpdatedAt = DateTime.UtcNow;
+            // Explicitně přiřadíme vlastnosti z modelu
+            existing.Position = photoModel.Position;
+            existing.ExternalId = photoModel.ExternalId;
+            existing.OriginalName = photoModel.OriginalName;
+            existing.Material = photoModel.Material;
+            existing.Form = photoModel.Form;
+            existing.Filler = photoModel.Filler;
+            existing.Color = photoModel.Color;
+            existing.Mfi = photoModel.Mfi;
+            existing.MonthlyQuantity = photoModel.MonthlyQuantity;
+            existing.Name = photoModel.Name;
+            existing.Code = photoModel.Code;
+            existing.Type = photoModel.Type;
+            existing.Supplier = photoModel.Supplier;
+            existing.Description = photoModel.Description;
+            existing.Notes = photoModel.Notes;
+            // pokud používáš ImagePath a chceš, aby se měnila z formuláře, můžeš nastavit:
+            existing.ImagePath = photoModel.ImagePath;
 
-            _context.Update(photo);
+            existing.UpdatedAt = DateTime.UtcNow;
+
+            _context.Update(existing);
             await _context.SaveChangesAsync();
         }
         catch (DbUpdateConcurrencyException)
         {
-            if (!_context.Photos.Any(e => e.Id == photo.Id))
+            if (!_context.Photos.Any(e => e.Id == photoModel.Id))
                 return NotFound();
             else
                 throw;
@@ -218,7 +258,6 @@ public class PhotosController : Controller
         var photo = await _context.Photos.FindAsync(id);
         if (photo != null)
         {
-            // smaž soubor z disku, pokud existuje
             if (!string.IsNullOrEmpty(photo.PhotoPath))
             {
                 var filePath = Path.Combine(_env.WebRootPath, photo.PhotoPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
@@ -265,7 +304,6 @@ public class PhotosController : Controller
     {
         var photos = await _context.Photos.OrderByDescending(x => x.UpdatedAt).ToListAsync();
 
-        // 1. Vygeneruj CSV do paměti
         var sb = new StringBuilder();
         sb.AppendLine("Id;Name;Code;Type;Supplier;Notes;PhotoPath;UpdatedAt");
         foreach (var p in photos)
@@ -275,13 +313,11 @@ public class PhotosController : Controller
         {
             using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, true))
             {
-                // 2. Přidej CSV
                 var csvEntry = zip.CreateEntry("vzorky.csv");
                 using (var entryStream = csvEntry.Open())
                 using (var sw = new StreamWriter(entryStream, Encoding.UTF8))
                     sw.Write(sb.ToString());
 
-                // 3. Přidej obrázky
                 foreach (var p in photos)
                 {
                     if (!string.IsNullOrEmpty(p.PhotoPath))
@@ -298,7 +334,6 @@ public class PhotosController : Controller
                 }
             }
 
-            // reset pozice není nutná pro ToArray(), ale je ok
             return File(ms.ToArray(), "application/zip", "vzorky.zip");
         }
     }

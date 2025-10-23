@@ -173,9 +173,12 @@
     }
 
     @@media (max-width: 640px) {
-        .styled-form {
-            grid-template-columns: 1fr;
-        }
+        .styled-form
+
+    {
+        grid-template-columns: 1fr;
+    }
+
     }
 </style>
 
@@ -196,6 +199,7 @@
             @Html.AntiForgeryToken()
             <input type="hidden" asp-for="Id" />
 
+            <!-- Pořadí polí upravené podle tvého požadavku -->
             <div class="form-group">
                 <label asp-for="Position">Pozice</label>
                 <input asp-for="Position" class="form-control" />
@@ -203,9 +207,15 @@
             </div>
 
             <div class="form-group">
-                <label asp-for="ExternalId">ID (externí)</label>
+                <label asp-for="ExternalId">ID</label>
                 <input asp-for="ExternalId" class="form-control" />
                 <span asp-validation-for="ExternalId" class="field-validation"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Supplier">Dodavatel</label>
+                <input asp-for="Supplier" class="form-control" />
+                <span asp-validation-for="Supplier" class="field-validation"></span>
             </div>
 
             <div class="form-group full">
@@ -238,10 +248,10 @@
                 <span asp-validation-for="Color" class="field-validation"></span>
             </div>
 
-            <div class="form-group">
-                <label asp-for="Mfi">MFI</label>
-                <input asp-for="Mfi" class="form-control" />
-                <span asp-validation-for="Mfi" class="field-validation"></span>
+            <div class="form-group full">
+                <label asp-for="Description">Popis</label>
+                <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                <span asp-validation-for="Description" class="field-validation"></span>
             </div>
 
             <div class="form-group">
@@ -250,34 +260,10 @@
                 <span asp-validation-for="MonthlyQuantity" class="field-validation"></span>
             </div>
 
-            <div class="form-group full">
-                <label asp-for="Name">Název</label>
-                <input asp-for="Name" class="form-control" />
-                <span asp-validation-for="Name" class="field-validation"></span>
-            </div>
-
             <div class="form-group">
-                <label asp-for="Code">Kód</label>
-                <input asp-for="Code" class="form-control" />
-                <span asp-validation-for="Code" class="field-validation"></span>
-            </div>
-
-            <div class="form-group">
-                <label asp-for="Type">Typ</label>
-                <input asp-for="Type" class="form-control" />
-                <span asp-validation-for="Type" class="field-validation"></span>
-            </div>
-
-            <div class="form-group">
-                <label asp-for="Supplier">Dodavatel</label>
-                <input asp-for="Supplier" class="form-control" />
-                <span asp-validation-for="Supplier" class="field-validation"></span>
-            </div>
-
-            <div class="form-group full">
-                <label asp-for="Description">Popis</label>
-                <textarea asp-for="Description" class="form-control" rows="3"></textarea>
-                <span asp-validation-for="Description" class="field-validation"></span>
+                <label asp-for="Mfi">MFI</label>
+                <input asp-for="Mfi" class="form-control" />
+                <span asp-validation-for="Mfi" class="field-validation"></span>
             </div>
 
             <div class="form-group full">

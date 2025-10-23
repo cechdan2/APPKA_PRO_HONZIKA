@@ -199,7 +199,9 @@
 
             <div class="fields" aria-live="polite">
                 <div class="field"><div class="label">Pozice</div><div class="value">@Safe(Model.Position?.ToString())</div></div>
-                <div class="field"><div class="label">ID (externí)</div><div class="value">@Safe(Model.ExternalId)</div></div>
+                <div class="field"><div class="label">ID</div><div class="value">@Safe(Model.ExternalId)</div></div>
+
+                <div class="field full"><div class="label">Dodavatel</div><div class="value">@Safe(Model.Supplier)</div></div>
 
                 <div class="field full"><div class="label">Původní název</div><div class="value">@Safe(Model.OriginalName)</div></div>
 
@@ -209,32 +211,14 @@
                 <div class="field"><div class="label">Plnivo</div><div class="value">@Safe(Model.Filler)</div></div>
                 <div class="field"><div class="label">Barva</div><div class="value">@Safe(Model.Color)</div></div>
 
-                <div class="field"><div class="label">MFI</div><div class="value">@Safe(Model.Mfi)</div></div>
-                <div class="field"><div class="label">Množství (měsíc)</div><div class="value">@Safe(Model.MonthlyQuantity?.ToString())</div></div>
-
-                <div class="field full"><div class="label">Název</div><div class="value">@Safe(Model.Name)</div></div>
-                <div class="field"><div class="label">Kód</div><div class="value">@Safe(Model.Code)</div></div>
-
-                <div class="field"><div class="label">Typ</div><div class="value">@Safe(Model.Type)</div></div>
-                <div class="field"><div class="label">Dodavatel</div><div class="value">@Safe(Model.Supplier)</div></div>
-
                 <div class="field full"><div class="label">Popis</div><div class="value">@Safe(Model.Description)</div></div>
+
+                <div class="field"><div class="label">Množství (měsíc)</div><div class="value">@Safe(Model.MonthlyQuantity?.ToString())</div></div>
+                <div class="field"><div class="label">MFI</div><div class="value">@Safe(Model.Mfi)</div></div>
+                
                 <div class="field full"><div class="label">Poznámky</div><div class="value">@Safe(Model.Notes)</div></div>
 
-                <div class="field"><div class="label">ImagePath</div><div class="value">@Safe(Model.ImagePath)</div></div>
-                <div class="field"><div class="label">PhotoPath (legacy)</div><div class="value">@Safe(Model.PhotoPath)</div></div>
-
-                <div class="field"><div class="label">Id (interní)</div><div class="value">@Safe(Model.Id.ToString())</div></div>
                 <div class="field"><div class="label">Vytvořeno</div><div class="value">@SafeDate(Model.CreatedAt)</div></div>
-
-                <div class="field full">
-                    <div class="label">Další informace</div>
-                    <div class="value">
-                        <!-- případné další vlastnosti, pokud přidáš do modelu, vypiš je sem -->
-                        <!-- tady je místo pro budoucí rozšíření -->
-                        -
-                    </div>
-                </div>
             </div>
 
             <div class="actions">

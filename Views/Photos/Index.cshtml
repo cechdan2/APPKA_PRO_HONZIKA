@@ -1,6 +1,11 @@
 ﻿@model List<PhotoApp.Models.PhotoRecord>
 @{
     ViewData["Title"] = "ODPO s.r.o. – Katalog vzorků plastů";
+    string Safe(string s) => string.IsNullOrWhiteSpace(s) ? "-" : s;
+    string SafeDate(DateTime dt) => (dt == DateTime.MinValue) ? "-" : dt.ToLocalTime().ToString("g");
+    Func<PhotoApp.Models.PhotoRecord, string> ImageSrc = item =>
+        !string.IsNullOrWhiteSpace(item.ImagePath) ? Url.Content(item.ImagePath) :
+        !string.IsNullOrWhiteSpace(item.PhotoPath) ? Url.Content(item.PhotoPath) : null;
 }
 <style>
     :root {
@@ -99,17 +104,21 @@
 
     table {
         width: 100%;
-        border-collapse: collapse
+        border-collapse: collapse;
+        font-size: 13px
     }
 
     th, td {
-        padding: 10px;
-        border-bottom: 1px solid var(--border)
+        padding: 8px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+        text-align: left
     }
 
     th {
-        text-align: left;
-        color: var(--brand-dark)
+        color: var(--brand-dark);
+        font-weight: 700;
+        font-size: 12px
     }
 
     tr:hover {
@@ -127,17 +136,8 @@
     .img-link {
         text-decoration: none;
         color: inherit;
-        cursor: pointer;
+        cursor: pointer
     }
-
-        .img-link:visited,
-        .img-link:active {
-            color: inherit;
-        }
-
-        .img-link:hover {
-            opacity: 0.85;
-        }
 
     .cards-container {
         display: grid;
@@ -215,24 +215,67 @@
         padding: 20px 0
     }
 
-    @@media (max-width: 767px) {
-        #tableView {
-            display: none;
-        }
-
-        #cardsView {
-            display: grid;
-        }
+    /* card details styling for mobile */
+    .detail-list {
+        margin-top: 12px;
+        display: grid;
+        gap: 6px
     }
 
-    @@media (min-width: 768px) {
-        #tableView {
-            display: block;
-        }
+    .detail-row {
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+    }
 
-        #cardsView {
-            display: none;
-        }
+    .field-label {
+        width: 130px;
+        font-weight: 700;
+        color: #333;
+        flex-shrink: 0;
+        font-size: 13px
+    }
+
+    .field-value {
+        background: #fbfff9;
+        border: 1px solid var(--border);
+        padding: 8px;
+        border-radius: 8px;
+        flex: 1;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-size: 13px
+    }
+
+    @@media (max-width: 767px) {
+        #tableView
+
+    {
+        display: none;
+    }
+
+    #cardsView {
+        display: grid;
+    }
+
+    }
+    
+    @@media (min-width: 768px) {
+        #tableView
+
+    {
+        display: block;
+    }
+
+    #cardsView {
+        display: none;
+    }
+
+    }
+
+    /* make very long tables horizontally scrollable on narrow screens */
+    .table-wrap {
+        overflow-x: auto;
     }
 </style>
 
@@ -256,7 +299,7 @@
         </form>
     </div>
 
-    <div class="header-right">
+    <div class="header-right" style="margin-top:8px;">
         @if (User?.Identity?.IsAuthenticated ?? false)
         {
             <div class="user-row">
@@ -276,113 +319,37 @@
         }
     </div>
 
-    <style>
-        :root {
-            --brand: #16a34a;
-            --brand-dark: #166534;
-            --border: #dbe7d9;
-            --white: #fff;
-            --pill-pad: 8px 12px;
-            --radius-pill: 999px;
-            --small-font: 0.95rem;
-        }
-
-        .header-right {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            margin-left: auto;
-        }
-
-        .user-row {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .user-pill {
-            display: inline-block;
-            padding: 6px 10px;
-            border-radius: var(--radius-pill);
-            background: #eff9f0;
-            border: 1px solid var(--border);
-            color: var(--brand-dark);
-            font-weight: 600;
-            font-size: var(--small-font);
-        }
-
-        .action-pill {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: var(--pill-pad);
-            border-radius: 10px;
-            border: 1px solid var(--border);
-            background: var(--white);
-            color: var(--brand-dark);
-            text-decoration: none;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: var(--small-font);
-        }
-
-            .action-pill:hover {
-                background: #e6f9e9;
-            }
-
-        .logout-form {
-            margin: 0;
-            display: inline-block;
-        }
-
-        /* compact on narrow screens */
-        @@media (max-width: 480px) {
-            .header-right {
-                gap: 6px;
-            }
-
-            .user-pill {
-                padding: 4px 8px;
-                font-size: 0.9rem;
-            }
-
-            .action-pill {
-                padding: 6px 10px;
-                font-size: 0.9rem;
-            }
-        }
-    </style>
-    <!-- Desktop tabulka -->
-    <div id="tableView" class="card">
+    <!-- Desktop: full table with all fields -->
+    <div id="tableView" class="card table-wrap" aria-label="Katalog vzorků - tabulka">
         <table>
             <thead>
                 <tr>
                     <th>Foto</th>
-                    <th>Název</th>
-                    <th>Kód</th>
-                    <th>Typ</th>
-                    <th>Dodavatel</th>
                     <th>Pozice</th>
-                    <th>ID (externí)</th>
+                    <th>Id</th>
+                    <th>Dodavatel</th>
+                    <th>Původní název</th>
                     <th>Materiál</th>
                     <th>Forma</th>
                     <th>Plnivo</th>
                     <th>Barva</th>
-                    <th>MFI</th>
+                    <th>Popis</th>
                     <th>Množství (měsíc)</th>
-                    <th>Upraveno</th>
+                    <th>MFI</th>
+                    <th>Poznámky</th>
                     <th></th>
                 </tr>
             </thead>
             <tbody>
                 @foreach (var item in Model)
                 {
+                    var src = ImageSrc(item);
                     <tr>
                         <td>
-                            @if (!string.IsNullOrEmpty(item.PhotoPath) || !string.IsNullOrEmpty(item.ImagePath))
+                            @if (!string.IsNullOrEmpty(src))
                             {
                                 <a href="@Url.Action("Details", new { id = item.Id })" class="img-link">
-                                    <img class="thumb" src="@(string.IsNullOrWhiteSpace(item.ImagePath) ? item.PhotoPath : item.ImagePath)" alt="@item.Name" />
+                                    <img class="thumb" src="@src" alt="@item.Name" />
                                 </a>
                             }
                             else
@@ -390,48 +357,53 @@
                                 <span>—</span>
                             }
                         </td>
+                        <td>@Safe(item.Position)</td>
+                        <td>@Safe(item.ExternalId)</td>
+                        <td>@Safe(item.Supplier)</td>
+                        <td style="white-space:pre-wrap;">@Safe(item.OriginalName)</td>
+                        <td>@Safe(item.Material)</td>
+                        <td>@Safe(item.Form)</td>
+                        <td>@Safe(item.Filler)</td>
+                        <td>@Safe(item.Color)</td>
+                        <td style="white-space:pre-wrap; max-width:280px;">@(string.IsNullOrWhiteSpace(item.Description) ? "-" : item.Description)</td>
+                        <td>@Safe(item.MonthlyQuantity)</td>
+                        <td>@Safe(item.Mfi)</td>
+                        <td style="white-space:pre-wrap; max-width:280px;">@(string.IsNullOrWhiteSpace(item.Notes) ? "-" : item.Notes)</td>
                         <td>
-                            <a href="@Url.Action("Details", new { id = item.Id })">@item.Name</a>
-                        </td>
-                        <td>@item.Code</td>
-                        <td>@item.Type</td>
-                        <td>@item.Supplier</td>
-                        <td>@item.Position</td>
-                        <td>@item.ExternalId</td>
-                        <td>@item.Material</td>
-                        <td>@item.Form</td>
-                        <td>@item.Filler</td>
-                        <td>@item.Color</td>
-                        <td>@item.Mfi</td>
-                        <td>@item.MonthlyQuantity</td>
-                        <td>@item.UpdatedAt.ToString("g")</td>
-                        <td>
-                            <a href="@Url.Action("Edit", new { id = item.Id })">✏️</a>
-                            <a href="@Url.Action("Delete", new { id = item.Id })" class="destructive">🗑</a>
+                            <a href="@Url.Action("Details", new { id = item.Id })" title="Detail">🔍</a>
+                            <a href="@Url.Action("Edit", new { id = item.Id })" title="Upravit">✏️</a>
+                            <a href="@Url.Action("Delete", new { id = item.Id })" class="destructive" title="Smazat">🗑</a>
                         </td>
                     </tr>
                 }
             </tbody>
         </table>
     </div>
-    <!-- Mobilní kartičky -->
-    <div id="cardsView" class="cards-container">
+
+    <!-- Mobile: cards with full list of fields -->
+    <div id="cardsView" class="cards-container" aria-label="Katalog vzorků - kartičky">
         @foreach (var item in Model)
         {
-            <div class="card-item">
+            var src = ImageSrc(item);
+            <div class="card-item" role="group" aria-labelledby="title-@item.Id">
                 <div class="card-top">
-                    @if (!string.IsNullOrEmpty(item.PhotoPath) || !string.IsNullOrEmpty(item.ImagePath))
+                    @if (!string.IsNullOrEmpty(src))
                     {
-                        <img src="@(string.IsNullOrWhiteSpace(item.ImagePath) ? item.PhotoPath : item.ImagePath)" class="thumb" alt="@item.Name" />
+                        <img src="@src" alt="@item.Name" />
                     }
+                    else
+                    {
+                        <div style="width:80px;height:80px;border-radius:8px;background:#f6faf6;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:#888">—</div>
+                    }
+
                     <div class="card-body">
-                        <div class="card-title">@item.Name</div>
-                        <div class="card-sub">
-                            @item.Type @if (!string.IsNullOrEmpty(item.Code)){
-                            <span>- @item.Code</span>
-                        }
-                    </div>
-                    <div class="card-props">
+                        <div id="title-@item.Id" class="card-title">@Safe(item.Name)</div>
+                        <div class="card-sub">@Safe(item.Type) @if (!string.IsNullOrEmpty(item.Code)){
+                        <span>- @item.Code</span>
+                    }
+</div>
+                    <div class="muted">@SafeDate(item.UpdatedAt)</div>
+                    <div class="card-props" style="margin-top:8px;">
                         @if (!string.IsNullOrEmpty(item.Supplier))
                         {
                             <span class="pill">@item.Supplier</span>
@@ -444,40 +416,38 @@
                         {
                             <span class="pill">ID: @item.ExternalId</span>
                         }
-                        @if (!string.IsNullOrEmpty(item.Material))
-                        {
-                            <span class="pill">@item.Material</span>
-                        }
-                        @if (!string.IsNullOrEmpty(item.Form))
-                        {
-                            <span class="pill">@item.Form</span>
-                        }
-                        @if (!string.IsNullOrEmpty(item.Filler))
-                        {
-                            <span class="pill">plnivo: @item.Filler</span>
-                        }
-                        @if (!string.IsNullOrEmpty(item.Color))
-                        {
-                            <span class="pill">@item.Color</span>
-                        }
-                        @if (!string.IsNullOrEmpty(item.Mfi))
-                        {
-                            <span class="pill">MFI: @item.Mfi</span>
-                        }
-                        @if (!string.IsNullOrEmpty(item.MonthlyQuantity))
-                        {
-                            <span class="pill">@item.MonthlyQuantity</span>
-                        }
                     </div>
-                    <div class="muted">@item.UpdatedAt.ToString("g")</div>
                 </div>
             </div>
+
+            <div class="detail-list">
+                <div class="detail-row"><div class="field-label">Id</div><div class="field-value">@item.Id</div></div>
+                <div class="detail-row"><div class="field-label">Původní název</div><div class="field-value">@Safe(item.OriginalName)</div></div>
+                <div class="detail-row"><div class="field-label">Dodavatel</div><div class="field-value">@Safe(item.Supplier)</div></div>
+                <div class="detail-row"><div class="field-label">Pozice</div><div class="field-value">@Safe(item.Position)</div></div>
+                <div class="detail-row"><div class="field-label">ID (externí)</div><div class="field-value">@Safe(item.ExternalId)</div></div>
+                <div class="detail-row"><div class="field-label">Materiál</div><div class="field-value">@Safe(item.Material)</div></div>
+                <div class="detail-row"><div class="field-label">Forma</div><div class="field-value">@Safe(item.Form)</div></div>
+                <div class="detail-row"><div class="field-label">Plnivo</div><div class="field-value">@Safe(item.Filler)</div></div>
+                <div class="detail-row"><div class="field-label">Barva</div><div class="field-value">@Safe(item.Color)</div></div>
+                <div class="detail-row"><div class="field-label">MFI</div><div class="field-value">@Safe(item.Mfi)</div></div>
+                <div class="detail-row"><div class="field-label">Množství (měsíc)</div><div class="field-value">@Safe(item.MonthlyQuantity)</div></div>
+                <div class="detail-row"><div class="field-label">Popis</div><div class="field-value">@Safe(item.Description)</div></div>
+                <div class="detail-row"><div class="field-label">Poznámky</div><div class="field-value">@Safe(item.Notes)</div></div>
+                <div class="detail-row"><div class="field-label">ImagePath</div><div class="field-value">@Safe(item.ImagePath)</div></div>
+                <div class="detail-row"><div class="field-label">PhotoPath</div><div class="field-value">@Safe(item.PhotoPath)</div></div>
+                <div class="detail-row"><div class="field-label">Vytvořeno</div><div class="field-value">@SafeDate(item.CreatedAt)</div></div>
+                <div class="detail-row"><div class="field-label">Upraveno</div><div class="field-value">@SafeDate(item.UpdatedAt)</div></div>
+            </div>
+
             <div class="card-actions">
+                <a href="@Url.Action("Details", new { id = item.Id })" class="pill">🔍 Detail</a>
                 <a href="@Url.Action("Edit", new { id = item.Id })" class="pill">✏️ Upravit</a>
                 <a href="@Url.Action("Delete", new { id = item.Id })" class="destructive pill">🗑 Smazat</a>
             </div>
         </div>
                 }
     </div>
+
     <div class="footer">Data se ukládají v databázi. Pro zálohu exportujte data ze serveru.</div>
 </main>
