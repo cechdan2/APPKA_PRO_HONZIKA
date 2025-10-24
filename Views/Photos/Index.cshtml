@@ -278,17 +278,150 @@
         overflow-x: auto;
     }
 </style>
-
 <header>
-    <div class="container" style="display:flex;align-items:center;gap:12px">
+    <style>
+        /* Lokální styly pro header (přesuň do hlavního CSS podle potřeby) */
+        .header-inner {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 0;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+            .brand img {
+                height: 36px;
+                width: auto;
+                display: block;
+            }
+
+            .brand h1 {
+                margin: 0;
+                font-size: 18px;
+                font-weight: 700;
+                color: #166534;
+            }
+
+        .header-actions {
+            margin-left: auto;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        /* jednotný vzhled "tlačítek" (odkazů i buttonů) */
+        .action-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid #dbe7d9;
+            background: #fff;
+            color: inherit;
+            text-decoration: none;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+            .action-btn.primary {
+                background: #16a34a;
+                color: #fff;
+                border-color: #166534;
+            }
+
+            .action-btn.destructive {
+                background: #ef4444;
+                color: #fff;
+                border-color: #b91c1c;
+            }
+
+        /* formulář udrží tlačítko inline a bez marginu */
+        .inline-form {
+            margin: 0;
+            display: inline-block;
+        }
+
+        /* aby se tlačítka správně škálovala na malých obrazovkách */
+        @@media (max-width:600px) {
+            .action-btn
+
+        {
+            padding: 6px 10px;
+            font-size: 13px;
+        }
+
+        }</style>
+
+    <div class="container header-inner" style="display:flex;align-items:center;">
         <div class="brand">
-            <img src="/logo.png" alt="ODPO logo">
-            <h1>ODPO s.r.o. – Katalog vzorků plastů</h1>
+            <img src="/logo.png" alt="ODPO logo" />
+            <div>
+                <h1>ODPO s.r.o. – Katalog vzorků plastů</h1>
+            </div>
         </div>
-        <div class="right">
-            <a href="@Url.Action("Create")" class="primary pill">+ Nový vzorek</a>
-            <a href="@Url.Action("ExportZip", "Photos")" class="pill">Export ZIP (data + obrázky)</a>
+
+        <div class="header-actions">
+            <a href="@Url.Action("Create", "Photos")" class="action-btn primary">+ Nový vzorek</a>
+            <a href="@Url.Action("ExportZip", "Photos")" class="action-btn">Export ZIP (CSV + obrázky)</a>
+            <a href="@Url.Action("ExportExcelWithImages", "Photos")" class="action-btn">Export XLSX s obrázky</a>
+            <a href="@Url.Action("Export", "Backup")" class="action-btn">Stáhnout zálohu (DB + uploads)</a>
+            <a href="@Url.Action("Import", "Photos")" class="action-btn">Import</a>
+
+
+            <button type="button" id="showRestoreBtn" class="action-btn">Obnovit ze zálohy</button>
+
+            @if (User?.Identity?.IsAuthenticated ?? false)
+            {
+                <form asp-controller="Home" asp-action="ClearPhotos" method="post" class="inline-form"
+                      onsubmit="return confirm('Opravdu vymazat všechny fotky? Tuto akci nelze vrátit zpět.');">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="action-btn destructive">Vymazat všechny vzorky</button>
+                </form>
+            }
+
+            <!-- skrytý formulář pro obnovení (Restore) -->
+            <form id="restoreForm" asp-controller="Backup" asp-action="Restore" method="post" enctype="multipart/form-data" style="display:none; margin-top:8px;">
+                @Html.AntiForgeryToken()
+                <label for="backupZip" style="margin-right:8px;">Vyberte ZIP (database + uploads):</label>
+                <input type="file" id="backupZip" name="backupZip" accept=".zip" required />
+                <button type="submit" class="action-btn primary" onclick="return confirm('Obnova přepíše existující databázi a soubory uploads. Pokračovat?');">Nahrát a obnovit</button>
+                <button type="button" id="cancelRestore" class="action-btn" style="margin-left:8px;">Zrušit</button>
+            </form>
         </div>
+
+        <script>
+            (function(){
+                var showBtn = document.getElementById('showRestoreBtn');
+                var restoreForm = document.getElementById('restoreForm');
+                var cancelBtn = document.getElementById('cancelRestore');
+
+                if (showBtn && restoreForm) {
+                    showBtn.addEventListener('click', function() {
+                        if (restoreForm.style.display === 'none' || restoreForm.style.display === '') {
+                            restoreForm.style.display = 'block';
+                            showBtn.textContent = 'Skrýt obnovení';
+                        } else {
+                            restoreForm.style.display = 'none';
+                            showBtn.textContent = 'Obnovit ze zálohy';
+                        }
+                    });
+                }
+
+                if (cancelBtn && restoreForm && showBtn) {
+                    cancelBtn.addEventListener('click', function() {
+                        restoreForm.style.display = 'none';
+                        showBtn.textContent = 'Obnovit ze zálohy';
+                    });
+                }
+            })();
+        </script>
     </div>
 </header>
 
@@ -297,33 +430,104 @@
         <form method="get" style="flex:1">
             <input type="search" name="search" placeholder="Hledat…" value="@(Context.Request.Query["search"])" style="width:100%;padding:7px;border-radius:7px;border:1px solid #dbe7d9;">
         </form>
-
-        @if (User?.Identity?.IsAuthenticated ?? false)
-        {
-            <form asp-controller="Home" asp-action="ClearPhotos" method="post"
-                  onsubmit="return confirm('Opravdu vymazat všechny fotky? Tuto akci nelze vrátit zpět.');">
-                @Html.AntiForgeryToken()
-                <button type="submit" class="destructive pill">Vymazat všechny fotky</button>
-            </form>
-        }
     </div>
+    @{
+        // Výpočet iniciál uživatele pro avatar
+        var username = User?.Identity?.Name ?? "";
+        var initials = "";
+        if (!string.IsNullOrWhiteSpace(username))
+        {
+            var parts = username.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            initials = string.Concat(parts.Select(p => p[0])).ToUpper();
+            if (initials.Length > 2) initials = initials.Substring(0, 2);
+        }
+    }
+    <style>
+        /* Lokální styly pro uživatelskou oblast headeru */
+        .header-right {
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
 
-    <div class="header-right" style="margin-top:8px;">
+        .user-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: transparent;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg,#e6f9e9,#d1f0d6);
+            color: #166534;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            border: 1px solid #dbe7d9;
+            flex-shrink: 0;
+        }
+
+        .user-pill {
+            font-size: 13px;
+            color: #133a13;
+            background: #fbfff9;
+            border: 1px solid #e6f1e6;
+            padding: 6px 10px;
+            border-radius: 999px;
+            white-space: nowrap;
+        }
+
+        .action-pill {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid #dbe7d9;
+            background: #fff;
+            color: inherit;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+            .action-pill:hover {
+                box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            }
+
+        .logout-form {
+            margin: 0;
+            display: inline-block;
+        }
+
+        @@media (max-width: 520px) {
+            .user-pill
+
+        {
+            display: none;
+        }
+        /* na malé obrazovce skryjeme plné jméno */
+        }</style>
+
+    <div class="header-right" aria-live="polite">
         @if (User?.Identity?.IsAuthenticated ?? false)
         {
-            <div class="user-row">
-                <span class="user-pill" title="Přihlášený uživatel">@User.Identity.Name</span>
+            <div class="user-row" role="group" aria-label="Uživatelské menu">
+                
+                <div class="user-pill" title="@username">@username</div>
 
                 <form asp-controller="Account" asp-action="Logout" method="post" class="logout-form" aria-label="Odhlásit">
                     @Html.AntiForgeryToken()
-                    <button type="submit" class="action-pill">Odhlásit</button>
+                    <button type="submit" class="action-pill" title="Odhlásit se">Odhlásit</button>
                 </form>
             </div>
         }
         else
         {
             <div class="user-row">
-                <a asp-controller="Account" asp-action="Login" class="action-pill">Přihlásit</a>
+                <a asp-controller="Account" asp-action="Login" class="action-pill" title="Přihlásit">Přihlásit</a>
             </div>
         }
     </div>

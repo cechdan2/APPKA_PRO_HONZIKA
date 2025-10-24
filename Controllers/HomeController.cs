@@ -82,17 +82,48 @@ public class HomeController : Controller
     {
         try
         {
-            // naèteme všechny záznamy
+            // 1) Smažeme všechny záznamy v DB
             var allPhotos = await _context.Photos.ToListAsync();
-
-            // pokud existují, smažeme je
             if (allPhotos.Any())
             {
                 _context.Photos.RemoveRange(allPhotos);
                 await _context.SaveChangesAsync();
             }
 
-            TempData["Message"] = "Všechny záznamy v tabulce Photos byly odstranìny.";
+            // 2) Smažeme všechny soubory a podsložky v wwwroot/uploads
+            var uploadsDir = Path.Combine(_env.WebRootPath, "uploads");
+            if (Directory.Exists(uploadsDir))
+            {
+                var di = new DirectoryInfo(uploadsDir);
+
+                // smažeme soubory
+                foreach (var file in di.GetFiles())
+                {
+                    try
+                    {
+                        file.Delete();
+                    }
+                    catch (Exception ex)
+                    {
+                        // tady mùžeš logovat chyby napø. _logger.LogError(ex, "Chyba mazání souboru");
+                    }
+                }
+
+                // smažeme podsložky (rekurzivnì)
+                foreach (var dir in di.GetDirectories())
+                {
+                    try
+                    {
+                        dir.Delete(true);
+                    }
+                    catch (Exception ex)
+                    {
+                        // tady mùžeš logovat chyby napø. _logger.LogError(ex, "Chyba mazání složky");
+                    }
+                }
+            }
+
+            TempData["Message"] = "Všechny záznamy v tabulce Photos a soubory ve wwwroot/uploads byly odstranìny.";
         }
         catch (Exception ex)
         {
