@@ -35,13 +35,13 @@ public class PhotosController : Controller
     [AllowAnonymous]
     // vlož tento using do horní části souboru:
     // using PhotoApp.ViewModels;
-
-    public async Task<IActionResult> Index(string search, string supplier, string material, string type, string color)
+    // doplňte required using: using PhotoApp.ViewModels;
+    public async Task<IActionResult> Index(string search, string supplier, string material, string type, string color, string name, string position, string filler)
     {
         // připrav query
         var q = _context.Photos.AsNoTracking().AsQueryable();
 
-        // fulltext-like vyhledávání přes několik polí
+        // fulltext-like vyhledávání přes několik polí (pokryje i Name)
         if (!string.IsNullOrWhiteSpace(search))
         {
             var s = search.Trim();
@@ -65,6 +65,16 @@ public class PhotosController : Controller
 
         if (!string.IsNullOrWhiteSpace(color))
             q = q.Where(p => p.Color == color);
+
+        // nové přesné filtry
+        if (!string.IsNullOrWhiteSpace(name))
+            q = q.Where(p => p.Name == name);
+
+        if (!string.IsNullOrWhiteSpace(position))
+            q = q.Where(p => p.Position == position);
+
+        if (!string.IsNullOrWhiteSpace(filler))
+            q = q.Where(p => p.Filler == filler);
 
         // načti položky (třídění podle potřeby)
         var items = await q.OrderByDescending(p => p.UpdatedAt).ToListAsync();
@@ -98,6 +108,28 @@ public class PhotosController : Controller
             .OrderBy(x => x)
             .ToListAsync();
 
+        // nové seznamy
+        var names = await _context.Photos
+            .Where(p => !string.IsNullOrEmpty(p.Name))
+            .Select(p => p.Name)
+            .Distinct()
+            .OrderBy(x => x)
+            .ToListAsync();
+
+        var positions = await _context.Photos
+            .Where(p => !string.IsNullOrEmpty(p.Position))
+            .Select(p => p.Position)
+            .Distinct()
+            .OrderBy(x => x)
+            .ToListAsync();
+
+        var fillers = await _context.Photos
+            .Where(p => !string.IsNullOrEmpty(p.Filler))
+            .Select(p => p.Filler)
+            .Distinct()
+            .OrderBy(x => x)
+            .ToListAsync();
+
         var vm = new PhotoApp.ViewModels.PhotosIndexViewModel
         {
             Items = items,
@@ -105,11 +137,17 @@ public class PhotosController : Controller
             Materials = materials,
             Types = types,
             Colors = colors,
+            Names = names,
+            Positions = positions,
+            Fillers = fillers,
             Search = search,
             Supplier = supplier,
             Material = material,
             Type = type,
-            Color = color
+            Color = color,
+            Name = name,
+            Position = position,
+            Filler = filler
         };
 
         return View(vm);

@@ -442,9 +442,9 @@
 </header>
 
 <main class="container">
-<div class="toolbar card" style="display:flex;gap:8px;flex-wrap:wrap">
-    <form method="get" style="flex:1;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <input type="search" name="search" placeholder="Hledat…" value="@(Model?.Search ?? "")" style="flex:1;min-width:180px;padding:7px;border-radius:7px;border:1px solid #dbe7d9;" />
+    <div class="toolbar card" style="display:flex;gap:8px;flex-wrap:wrap">
+        <form method="get" style="flex:1;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <input type="search" name="search" placeholder="Hledat…" value="@(Model?.Search ?? "")" style="flex:1;min-width:180px;padding:7px;border-radius:7px;border:1px solid #dbe7d9;" />
 
             <select name="supplier" style="min-width:140px;padding:7px;border-radius:7px;border:1px solid #dbe7d9;">
                 <option value="">Všichni dodavatelé</option>
@@ -478,10 +478,35 @@
                 }
             </select>
 
-        <button type="submit" class="action-btn">Filtrovat</button>
-        <a href="@Url.Action("Index","Photos")" class="action-btn" style="margin-left:6px;">Smazat filtry</a>
-    </form>
-</div>
+            <!-- NOVÉ: Name, Position, Filler -->
+            <select name="name" style="min-width:160px;padding:7px;border-radius:7px;border:1px solid #dbe7d9;">
+                <option value="">Všechna jména</option>
+                @foreach (var n in Model?.Names ?? Enumerable.Empty<string>())
+                {
+                    <option value="@n" selected="@(n == Model?.Name ? "selected" : null)">@n</option>
+                }
+            </select>
+
+            <select name="position" style="min-width:140px;padding:7px;border-radius:7px;border:1px solid #dbe7d9;">
+                <option value="">Všechny pozice</option>
+                @foreach (var p in Model?.Positions ?? Enumerable.Empty<string>())
+                {
+                    <option value="@p" selected="@(p == Model?.Position ? "selected" : null)">@p</option>
+                }
+            </select>
+
+            <select name="filler" style="min-width:140px;padding:7px;border-radius:7px;border:1px solid #dbe7d9;">
+                <option value="">Všechna plniva</option>
+                @foreach (var f in Model?.Fillers ?? Enumerable.Empty<string>())
+                {
+                    <option value="@f" selected="@(f == Model?.Filler ? "selected" : null)">@f</option>
+                }
+            </select>
+
+            <button type="submit" class="action-btn">Filtrovat</button>
+            <a href="@Url.Action("Index", "Photos")" class="action-btn" style="margin-left:6px;">Smazat filtry</a>
+        </form>
+    </div>
     @{
         // Výpočet iniciál uživatele pro avatar
         var username = User?.Identity?.Name ?? "";
