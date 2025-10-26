@@ -8,9 +8,8 @@
     <button type="submit">Nahrát zálohu (ZIP)</button>
 </form>
 
-
-
 <script>
+    // stáhne zip přes API a nabídne ke stažení
     async function downloadBackup() {
       const resp = await fetch('/api/admin/db/backup', { method: 'GET', credentials: 'include' });
       if (!resp.ok) {
@@ -30,14 +29,16 @@
       window.URL.revokeObjectURL(url);
     }
 
+    // upload + restore (posílá multipart/form-data pole s názvem 'backupZip')
     async function uploadRestore(fileInput) {
-      const file = fileInput.files[0];
+      const file = fileInput?.files?.[0];
       if (!file) return alert('Vyber soubor.');
 
       if (file.size > 200 * 1024 * 1024) return alert('Soubor je příliš velký.');
 
       const form = new FormData();
-      form.append('file', file);
+      // důležité: jméno pole musí odpovídat tomu, co server očekává -> 'backupZip'
+      form.append('backupZip', file);
 
       const resp = await fetch('/api/admin/db/restore', {
         method: 'POST',
@@ -45,14 +46,41 @@
         credentials: 'include'
       });
 
-      const txt = await resp.text();
+      // Pokusíme se číst JSON redirect nebo prostý text
       if (!resp.ok) {
+        const txt = await resp.text();
         alert('Restore failed: ' + txt);
-      } else {
-        alert('Restore OK: ' + txt);
+        return;
       }
+
+      // pokud server vrací JSON s { redirect: "..." }, přesměrujeme
+      const contentType = resp.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        try {
+          const json = await resp.json();
+          if (json?.redirect) {
+            window.location.href = json.redirect;
+            return;
+          }
+        } catch { /* ignore */ }
+      }
+
+      // pokud server poslal 302 (RedirectToAction) a jsme v fetch, nebudeme automaticky přesměrováni,
+      // takže prostě přejdeme na index Photos jako fallback
+      alert('Restore OK');
+      window.location.href = '/Photos';
     }
 
-    document.getElementById('downloadBtn').addEventListener('click', downloadBackup);
-    document.getElementById('restoreBtn').addEventListener('click', () => uploadRestore(document.getElementById('restoreFile')));
+    // bezpečně připojíme event listenery jen pokud element existuje
+    document.addEventListener('DOMContentLoaded', () => {
+      const downloadBtn = document.getElementById('downloadBtn');
+      if (downloadBtn) downloadBtn.addEventListener('click', downloadBackup);
+
+      const restoreBtn = document.getElementById('restoreBtn');
+      const restoreFile = document.getElementById('restoreFile');
+
+      if (restoreBtn && restoreFile) {
+        restoreBtn.addEventListener('click', () => uploadRestore(restoreFile));
+      }
+    });
 </script>

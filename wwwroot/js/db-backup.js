@@ -38,3 +38,6 @@ async function uploadRestore(fileInput) {
         alert('Restore OK: ' + txt);
     }
 }
+
+document.getElementById('downloadBtn').addEventListener('click', downloadBackup);
+document.getElementById('restoreBtn').addEventListener('click', () => uploadRestore(document.getElementById('restoreFile')));
