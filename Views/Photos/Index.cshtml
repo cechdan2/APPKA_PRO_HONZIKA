@@ -1,4 +1,5 @@
-﻿@model List<PhotoApp.Models.PhotoRecord>
+﻿@using System.Linq
+@model PhotoApp.ViewModels.PhotosIndexViewModel
 @{
     ViewData["Title"] = "ODPO s.r.o. – Katalog vzorků plastů";
     string Safe(string s) => string.IsNullOrWhiteSpace(s) ? "-" : s;
@@ -383,11 +384,11 @@
 
         <div class="header-actions">
             <a href="@Url.Action("Create", "Photos")" class="action-btn primary">+ Nový vzorek</a>
-            <a href="@Url.Action("ExportZip", "Photos")" class="action-btn">Export ZIP (CSV + obrázky)</a>
-            <a href="@Url.Action("ExportExcelWithImages", "Photos")" class="action-btn">Export XLSX s obrázky</a>
-            <a href="@Url.Action("GetBackup", "DatabaseBackup")" class="action-btn">Stáhnout zálohu (DB + uploads)</a>
-            <a href="@Url.Action("Import", "Photos")" class="action-btn">Import</a>
-            <a href="@Url.Action("Database", "Admin")" class="action-btn">Obnovit ze zálohy</a>
+            @* <a href="@Url.Action("ExportZip", "Photos")" class="action-btn">Export ZIP (CSV + obrázky)</a> *@
+            @* <a href="@Url.Action("ExportExcelWithImages", "Photos")" class="action-btn">Export XLSX s obrázky</a> *@
+            <a href="@Url.Action("GetBackup", "DatabaseBackup")" class="action-btn">Stáhnout zálohu databáze</a>
+            <a href="@Url.Action("Import", "Photos")" class="action-btn">Import z Excelu</a>
+            <a href="@Url.Action("Database", "Admin")" class="action-btn brand">Obnovit ze zálohy</a>
 
 
        
@@ -441,11 +442,46 @@
 </header>
 
 <main class="container">
-    <div class="toolbar card" style="display:flex;gap:8px;flex-wrap:wrap">
-        <form method="get" style="flex:1">
-            <input type="search" name="search" placeholder="Hledat…" value="@(Context.Request.Query["search"])" style="width:100%;padding:7px;border-radius:7px;border:1px solid #dbe7d9;">
-        </form>
-    </div>
+<div class="toolbar card" style="display:flex;gap:8px;flex-wrap:wrap">
+    <form method="get" style="flex:1;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input type="search" name="search" placeholder="Hledat…" value="@(Model?.Search ?? "")" style="flex:1;min-width:180px;padding:7px;border-radius:7px;border:1px solid #dbe7d9;" />
+
+            <select name="supplier" style="min-width:140px;padding:7px;border-radius:7px;border:1px solid #dbe7d9;">
+                <option value="">Všichni dodavatelé</option>
+                @foreach (var s in Model?.Suppliers ?? Enumerable.Empty<string>())
+                {
+                    <option value="@s" selected="@(s == Model?.Supplier ? "selected" : null)">@s</option>
+                }
+            </select>
+
+            <select name="material" style="min-width:140px;padding:7px;border-radius:7px;border:1px solid #dbe7d9;">
+                <option value="">Všechny materiály</option>
+                @foreach (var m in Model?.Materials ?? Enumerable.Empty<string>())
+                {
+                    <option value="@m" selected="@(m == Model?.Material ? "selected" : null)">@m</option>
+                }
+            </select>
+
+            <select name="type" style="min-width:140px;padding:7px;border-radius:7px;border:1px solid #dbe7d9;">
+                <option value="">Všechny typy</option>
+                @foreach (var t in Model?.Types ?? Enumerable.Empty<string>())
+                {
+                    <option value="@t" selected="@(t == Model?.Type ? "selected" : null)">@t</option>
+                }
+            </select>
+
+            <select name="color" style="min-width:120px;padding:7px;border-radius:7px;border:1px solid #dbe7d9;">
+                <option value="">Všechny barvy</option>
+                @foreach (var c in Model?.Colors ?? Enumerable.Empty<string>())
+                {
+                    <option value="@c" selected="@(c == Model?.Color ? "selected" : null)">@c</option>
+                }
+            </select>
+
+        <button type="submit" class="action-btn">Filtrovat</button>
+        <a href="@Url.Action("Index","Photos")" class="action-btn" style="margin-left:6px;">Smazat filtry</a>
+    </form>
+</div>
     @{
         // Výpočet iniciál uživatele pro avatar
         var username = User?.Identity?.Name ?? "";
@@ -569,7 +605,7 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach (var item in Model)
+                @foreach (var item in Model.Items)
                 {
                     var src = ImageSrc(item);
                     <tr>
@@ -644,7 +680,7 @@
 
     <!-- Mobile: cards with full list of fields -->
     <div id="cardsView" class="cards-container" aria-label="Katalog vzorků - kartičky">
-        @foreach (var item in Model)
+        @foreach (var item in Model.Items)
         {
             var src = ImageSrc(item);
             <div class="card-item" role="group" aria-labelledby="title-@item.Id">

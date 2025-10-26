@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -8,7 +10,7 @@ using Microsoft.Extensions.Logging;
 using PhotoApp.Data;
 using System;
 using System.IO;
-using System.Linq;
+using System.IO.Compression;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -19,37 +21,66 @@ namespace PhotoApp.Controllers
     [Authorize]
     public class DatabaseBackupController : ControllerBase
     {
-        private readonly string _dbPath;
+        private readonly string _dbPath;           // absolute path to the sqlite file
+        private readonly string _dbConnString;     // connection string used to open the DB
         private readonly string _backupFolder;
         private readonly ILogger<DatabaseBackupController> _logger;
         private readonly IServiceProvider _services;
         private readonly IHostApplicationLifetime _appLifetime;
+        private readonly IWebHostEnvironment _env;
         private static readonly SemaphoreSlim _opLock = new SemaphoreSlim(1, 1);
 
         private const long MaxUploadBytes = 200L * 1024 * 1024;
 
-        public DatabaseBackupController(IConfiguration config, ILogger<DatabaseBackupController> logger, IServiceProvider services, IHostApplicationLifetime appLifetime)
+        public DatabaseBackupController(IConfiguration config,
+                                        ILogger<DatabaseBackupController> logger,
+                                        IServiceProvider services,
+                                        IHostApplicationLifetime appLifetime,
+                                        IWebHostEnvironment env)
         {
             _logger = logger;
             _services = services;
             _appLifetime = appLifetime;
+            _env = env ?? throw new ArgumentNullException(nameof(env));
 
-            var cfgPath = config["SqliteDbPath"] ?? config["ConnectionStrings:Sqlite"];
-            if (string.IsNullOrWhiteSpace(cfgPath))
+            // Read possible DB config in multiple forms:
+            // - absolute path
+            // - relative path
+            // - full connection string "Data Source=..."
+            var cfg = config["SqliteDbPath"]
+                      ?? config.GetConnectionString("DefaultConnection")
+                      ?? config["ConnectionStrings:Sqlite"];
+
+            if (string.IsNullOrWhiteSpace(cfg))
             {
-                _dbPath = Path.Combine(AppContext.BaseDirectory, "photoapp.db");
+                // default: content root + photoapp.db
+                _dbPath = Path.Combine(_env.ContentRootPath ?? AppContext.BaseDirectory, "photoapp.db");
+                _dbConnString = $"Data Source={_dbPath}";
+            }
+            else if (cfg.IndexOf("data source=", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                // cfg looks like connection string; parse Data Source out to an absolute path
+                _dbConnString = cfg;
+                _dbPath = ExtractDataSourceFromConnectionString(cfg, _env.ContentRootPath ?? AppContext.BaseDirectory);
             }
             else
             {
-                _dbPath = cfgPath;
-                if (!Path.IsPathRooted(_dbPath))
-                    _dbPath = Path.Combine(AppContext.BaseDirectory, _dbPath);
+                // cfg is a path (absolute or relative to content root)
+                var p = cfg;
+                if (!Path.IsPathRooted(p))
+                    p = Path.GetFullPath(Path.Combine(_env.ContentRootPath ?? AppContext.BaseDirectory, p));
+                _dbPath = p;
+                _dbConnString = $"Data Source={_dbPath}";
             }
 
-            _backupFolder = Path.Combine(AppContext.BaseDirectory, "db-backups");
-            Directory.CreateDirectory(_backupFolder);
+            _backupFolder = Path.Combine(_env.ContentRootPath ?? AppContext.BaseDirectory, "db-backups");
+            try { Directory.CreateDirectory(_backupFolder); } catch { /* ignore */ }
+
+            _logger.LogInformation("DatabaseBackupController initialized. dbPath={DbPath}, connStringPreview={ConnPreview}", _dbPath, _dbConnString?.Substring(0, Math.Min(80, _dbConnString.Length)));
         }
 
+        // GET: api/admin/db/backup
+        // returns a zip containing database.db and uploads/*
         [HttpGet("backup")]
         public async Task<IActionResult> GetBackup()
         {
@@ -62,98 +93,82 @@ namespace PhotoApp.Controllers
                     return NotFound("DB file not found.");
                 }
 
-                var tmpFolder = Path.GetTempPath();
-                var baseName = $"photoapp-backup-{DateTime.UtcNow:yyyyMMdd_HHmmss}_{Guid.NewGuid():N}";
-                var tmpPath = Path.Combine(tmpFolder, baseName + ".sqlite");
-                var copyPath = Path.Combine(tmpFolder, baseName + "-copy.sqlite");
-
-                const int maxBackupAttempts = 6;
-                var backupSucceeded = false;
-                Exception lastException = null;
-
-                for (int attempt = 1; attempt <= maxBackupAttempts; attempt++)
+                // 1) create a consistent tmp copy of DB using BackupDatabase
+                var tmpDb = Path.Combine(Path.GetTempPath(), $"photoapp_backup_{DateTime.UtcNow:yyyyMMddHHmmss}_{Guid.NewGuid():N}.db");
+                try
                 {
+                    using (var source = new SqliteConnection(_dbConnString))
+                    using (var dest = new SqliteConnection($"Data Source={tmpDb}"))
+                    {
+                        await source.OpenAsync();
+                        await dest.OpenAsync();
+                        source.BackupDatabase(dest);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to create tmp DB via BackupDatabase, attempting direct copy fallback.");
                     try
                     {
-                        if (System.IO.File.Exists(tmpPath))
-                            System.IO.File.Delete(tmpPath);
+                        System.IO.File.Copy(_dbPath, tmpDb, overwrite: true);
+                    }
+                    catch (Exception copyEx)
+                    {
+                        _logger.LogError(copyEx, "Fallback copy also failed.");
+                        return StatusCode(500, "Failed to prepare DB for backup: " + copyEx.Message);
+                    }
+                }
 
-                        using (var source = new SqliteConnection($"Data Source={_dbPath}"))
-                        using (var dest = new SqliteConnection($"Data Source={tmpPath}"))
+                // 2) create zip in memory (stream) containing the tmp db and uploads folder
+                var zipName = $"backup_{DateTime.UtcNow:yyyyMMddHHmmss}.zip";
+                var uploadsFolder = Path.Combine(_env.WebRootPath ?? "", "uploads");
+
+                using (var ms = new MemoryStream())
+                {
+                    using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, true))
+                    {
+                        // add database.db entry
+                        var dbEntry = zip.CreateEntry("database.db", CompressionLevel.Optimal);
+                        using (var zs = dbEntry.Open())
+                        using (var fs = System.IO.File.Open(tmpDb, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                         {
-                            await source.OpenAsync();
-                            await dest.OpenAsync();
-                            source.BackupDatabase(dest);
+                            await fs.CopyToAsync(zs);
                         }
 
-                        backupSucceeded = true;
-                        break;
-                    }
-                    catch (Exception ex)
-                    {
-                        lastException = ex;
-                        _logger.LogWarning(ex, "Attempt {Attempt} to create backup failed, retrying...", attempt);
-                        await Task.Delay(500 * attempt);
-                    }
-                }
-
-                if (!backupSucceeded)
-                {
-                    var msg = lastException != null ? lastException.Message : "Unknown error creating backup.";
-                    _logger.LogError("Backup failed after retries: {Message}", msg);
-                    return StatusCode(500, "Failed to create backup: " + msg);
-                }
-
-                // Copy to a safe file to avoid locks while streaming
-                const int maxCopyAttempts = 6;
-                for (int i = 1; i <= maxCopyAttempts; i++)
-                {
-                    try
-                    {
-                        if (System.IO.File.Exists(copyPath))
-                            System.IO.File.Delete(copyPath);
-
-                        System.IO.File.Copy(tmpPath, copyPath, overwrite: true);
-                        break;
-                    }
-                    catch (IOException ioEx) when (i < maxCopyAttempts)
-                    {
-                        _logger.LogWarning(ioEx, "Attempt {Attempt} to copy backup file failed, retrying...", i);
-                        await Task.Delay(300 * i);
-                    }
-                }
-
-                Response.OnCompleted(() =>
-                {
-                    _ = Task.Run(async () =>
-                    {
-                        string[] paths = new[] { tmpPath, copyPath };
-                        foreach (var p in paths)
+                        // add uploads recursively
+                        if (Directory.Exists(uploadsFolder))
                         {
-                            const int maxDeleteAttempts = 6;
-                            for (int i = 1; i <= maxDeleteAttempts; i++)
+                            var files = Directory.GetFiles(uploadsFolder, "*", SearchOption.AllDirectories);
+                            foreach (var file in files)
                             {
-                                try
+                                var relPath = Path.GetRelativePath(uploadsFolder, file).Replace('\\', '/');
+                                var entryPath = Path.Combine("uploads", relPath).Replace('\\', '/');
+                                var entry = zip.CreateEntry(entryPath, CompressionLevel.Optimal);
+
+                                // try to open with read sharing (retry lightly if needed)
+                                using (var zs = entry.Open())
+                                using (var fs = System.IO.File.Open(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                                 {
-                                    if (System.IO.File.Exists(p))
-                                        System.IO.File.Delete(p);
-                                    break;
-                                }
-                                catch
-                                {
-                                    await Task.Delay(500 * i);
+                                    await fs.CopyToAsync(zs);
                                 }
                             }
                         }
-                    });
-                    return Task.CompletedTask;
-                });
+                    }
 
-                return PhysicalFile(copyPath, "application/x-sqlite3", Path.GetFileName(copyPath));
+                    ms.Position = 0;
+                    // schedule tmpDb deletion after response completes
+                    Response.OnCompleted(() =>
+                    {
+                        try { if (System.IO.File.Exists(tmpDb)) System.IO.File.Delete(tmpDb); } catch { }
+                        return Task.CompletedTask;
+                    });
+
+                    return File(ms.ToArray(), "application/zip", zipName);
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error while creating DB backup");
+                _logger.LogError(ex, "Error while creating DB+uploads backup");
                 return StatusCode(500, "Failed to create backup: " + ex.Message);
             }
             finally
@@ -164,69 +179,80 @@ namespace PhotoApp.Controllers
 
         [HttpGet("ui")]
         [Authorize]
-        public IActionResult Ui()
-        {
-            return Redirect("/Admin/Database");
-        }
+        public IActionResult Ui() => Redirect("/Admin/Database");
 
-        // Robust restore that replaces the active DB file atomically
+        // POST: api/admin/db/restore
+        // accepts a ZIP that contains database.db and uploads/* and restores both
         [HttpPost("restore")]
         [RequestSizeLimit(MaxUploadBytes)]
-        public async Task<IActionResult> RestoreBackup([FromForm] UploadFileModel model)
+        public async Task<IActionResult> RestoreBackup([FromForm] Microsoft.AspNetCore.Http.IFormFile backupZip)
         {
-            if (model?.File == null || model.File.Length == 0)
+            if (backupZip == null || backupZip.Length == 0)
                 return BadRequest("No file uploaded.");
 
-            if (model.File.Length > MaxUploadBytes)
+            if (backupZip.Length > MaxUploadBytes)
                 return BadRequest("Uploaded file too large.");
 
             await _opLock.WaitAsync();
+            var tmpFolder = Path.Combine(Path.GetTempPath(), $"photoapp_import_{Guid.NewGuid():N}");
+            Directory.CreateDirectory(tmpFolder);
             try
             {
-                // 1) Save upload to temp
-                var uploadedFile = Path.Combine(_backupFolder, $"upload-{Guid.NewGuid()}.sqlite");
-                await using (var fs = System.IO.File.Create(uploadedFile))
+                // 1) save uploaded zip to tmp
+                var zipPath = Path.Combine(tmpFolder, "backup.zip");
+                await using (var fs = System.IO.File.Create(zipPath))
                 {
-                    await model.File.CopyToAsync(fs);
+                    await backupZip.CopyToAsync(fs);
                 }
 
-                // 2) Integrity check
+                // 2) extract
                 try
                 {
-                    using (var srcConn = new SqliteConnection($"Data Source={uploadedFile}"))
+                    ZipFile.ExtractToDirectory(zipPath, tmpFolder, true);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to extract uploaded ZIP");
+                    return BadRequest("Uploaded file is not a valid ZIP or extraction failed.");
+                }
+
+                // 3) find database.db inside extracted folder
+                var extractedDb = Path.Combine(tmpFolder, "database.db");
+                if (!System.IO.File.Exists(extractedDb))
+                {
+                    return BadRequest("ZIP does not contain database.db at the root.");
+                }
+
+                // 4) integrity check of extracted DB
+                try
+                {
+                    using var checkConn = new SqliteConnection($"Data Source={extractedDb}");
+                    await checkConn.OpenAsync();
+                    using var checkCmd = checkConn.CreateCommand();
+                    checkCmd.CommandText = "PRAGMA integrity_check;";
+                    var res = (string)await checkCmd.ExecuteScalarAsync();
+                    if (!string.Equals(res, "ok", StringComparison.OrdinalIgnoreCase))
                     {
-                        await srcConn.OpenAsync();
-                        using var cmd = srcConn.CreateCommand();
-                        cmd.CommandText = "PRAGMA integrity_check;";
-                        var result = (string)await cmd.ExecuteScalarAsync();
-                        if (!string.Equals(result, "ok", StringComparison.OrdinalIgnoreCase))
-                        {
-                            System.IO.File.Delete(uploadedFile);
-                            _logger.LogWarning("Uploaded DB failed integrity_check: {Result}", result);
-                            return BadRequest($"Uploaded DB failed integrity_check: {result}");
-                        }
+                        return BadRequest($"Uploaded DB failed integrity_check: {res}");
                     }
                 }
                 catch (Exception ex)
                 {
-                    System.IO.File.Delete(uploadedFile);
-                    _logger.LogWarning(ex, "Integrity check failed for uploaded file");
+                    _logger.LogWarning(ex, "Integrity check failed or could not open extracted DB.");
                     return BadRequest("Uploaded DB failed integrity check or could not be opened.");
                 }
 
-                // 3) Save fallback backup of current DB
+                // 5) Save fallback of running DB (best-effort)
                 var fallback = Path.Combine(_backupFolder, $"pre-restore-{DateTime.UtcNow:yyyyMMdd_HHmmss}.sqlite");
                 if (System.IO.File.Exists(_dbPath))
                 {
                     try
                     {
-                        using (var source = new SqliteConnection($"Data Source={_dbPath}"))
-                        using (var dest = new SqliteConnection($"Data Source={fallback}"))
-                        {
-                            await source.OpenAsync();
-                            await dest.OpenAsync();
-                            source.BackupDatabase(dest);
-                        }
+                        using var source = new SqliteConnection(_dbConnString);
+                        using var destFallback = new SqliteConnection($"Data Source={fallback}");
+                        await source.OpenAsync();
+                        await destFallback.OpenAsync();
+                        source.BackupDatabase(destFallback);
                     }
                     catch (Exception ex)
                     {
@@ -234,106 +260,81 @@ namespace PhotoApp.Controllers
                     }
                 }
 
-                // 4) Create a temp target DB in the same folder as the real DB
-                var dbFolder = Path.GetDirectoryName(_dbPath) ?? AppContext.BaseDirectory;
-                var tempTarget = Path.Combine(dbFolder, $"dest-{Guid.NewGuid()}.sqlite");
-
-                // Use SQLite backup API to write uploaded DB into tempTarget
+                // 6) Try to close DI DbContexts (best-effort) to minimize locks
                 try
                 {
-                    using (var src = new SqliteConnection($"Data Source={uploadedFile}"))
-                    using (var dest = new SqliteConnection($"Data Source={tempTarget}"))
+                    using var scope = _services?.CreateScope();
+                    if (scope != null)
                     {
-                        await src.OpenAsync();
-                        await dest.OpenAsync();
-                        src.BackupDatabase(dest);
+                        var appDb = scope.ServiceProvider.GetService(typeof(AppDbContext)) as AppDbContext;
+                        if (appDb != null)
+                        {
+                            try { await appDb.Database.CloseConnectionAsync(); } catch { /* ignore */ }
+                            try { appDb.ChangeTracker.Clear(); } catch { /* ignore */ }
+                            try { appDb.Dispose(); } catch { /* ignore */ }
+                        }
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Failed to write uploaded DB to temp target.");
-                    try { System.IO.File.Delete(uploadedFile); } catch { }
-                    try { System.IO.File.Delete(tempTarget); } catch { }
-                    return StatusCode(500, "Failed to apply uploaded DB to temp target: " + ex.Message);
+                    _logger.LogWarning(ex, "Failed to resolve/close AppDbContext before restore (continuing).");
                 }
 
-                // 5) Try to close any AppDbContext connections to reduce chance of lock
+                // 7) Import database content into running DB via Backup API
                 try
                 {
-                    using var scope = _services.CreateScope();
-                    var appDb = scope.ServiceProvider.GetService(typeof(AppDbContext)) as IDisposable;
-                    if (appDb != null)
+                    using var src = new SqliteConnection($"Data Source={extractedDb}");
+                    using var dest = new SqliteConnection(_dbConnString);
+                    await src.OpenAsync();
+                    await dest.OpenAsync();
+                    src.BackupDatabase(dest);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to apply uploaded DB into running DB.");
+                    return StatusCode(500, "Failed to apply uploaded DB into running DB: " + ex.Message);
+                }
+
+                // 8) WAL checkpoint if needed
+                try
+                {
+                    using var conn = new SqliteConnection(_dbConnString);
+                    await conn.OpenAsync();
+                    using var cmd = conn.CreateCommand();
+                    cmd.CommandText = "PRAGMA wal_checkpoint(TRUNCATE);";
+                    await cmd.ExecuteNonQueryAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "wal_checkpoint failed after restore (continuing).");
+                }
+
+                // 9) Restore uploads folder (if present in zip)
+                var extractedUploads = Path.Combine(tmpFolder, "uploads");
+                var targetUploads = Path.Combine(_env.WebRootPath ?? Path.Combine(_env.ContentRootPath ?? Directory.GetCurrentDirectory(), "wwwroot"), "uploads");
+                try
+                {
+                    if (Directory.Exists(extractedUploads))
                     {
-                        try
+                        // remove existing uploads folder (best-effort) and copy new
+                        if (Directory.Exists(targetUploads))
                         {
-                            // If AppDbContext implements IDisposable, Dispose will be called.
-                            appDb.Dispose();
+                            Directory.Delete(targetUploads, true);
                         }
-                        catch { /* ignore */ }
+                        Directory.CreateDirectory(targetUploads);
+                        CopyDirectory(extractedUploads, targetUploads);
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Failed to resolve/dispose AppDbContext before replace (continuing).");
+                    _logger.LogWarning(ex, "Failed to restore uploads fully. Some files may be missing.");
+                    // continue - DB was restored
                 }
 
-                // 6) Atomically replace active DB with tempTarget.
-                // Use File.Replace when target exists, fallback to Move when it doesn't.
-                var replaceSucceeded = false;
-                const int maxReplaceAttempts = 8;
-                for (int attempt = 1; attempt <= maxReplaceAttempts; attempt++)
-                {
-                    try
-                    {
-                        if (System.IO.File.Exists(_dbPath))
-                        {
-                            // File.Replace requires target exists. The third param is a backup file path; pass null to skip backup.
-                            System.IO.File.Replace(tempTarget, _dbPath, null);
-                        }
-                        else
-                        {
-                            System.IO.File.Move(tempTarget, _dbPath);
-                        }
+                _logger.LogInformation("Restore applied into running DB and uploads restored (if present). Fallback saved to {Fallback}", fallback);
 
-                        replaceSucceeded = true;
-                        break;
-                    }
-                    catch (IOException ioEx)
-                    {
-                        _logger.LogWarning(ioEx, "Attempt {Attempt} to replace DB file failed (in use). Retrying...", attempt);
-                        await Task.Delay(300 * attempt);
-                    }
-                    catch (UnauthorizedAccessException uaEx)
-                    {
-                        _logger.LogWarning(uaEx, "Attempt {Attempt} to replace DB file failed (access). Retrying...", attempt);
-                        await Task.Delay(300 * attempt);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Unexpected error replacing DB file");
-                        break;
-                    }
-                }
-
-                // Cleanup uploaded file
-                try { if (System.IO.File.Exists(uploadedFile)) System.IO.File.Delete(uploadedFile); } catch { }
-
-                if (!replaceSucceeded)
-                {
-                    // If replace failed, try to remove tempTarget and inform user to restart app and try again
-                    try { if (System.IO.File.Exists(tempTarget)) System.IO.File.Delete(tempTarget); } catch { }
-                    _logger.LogError("Failed to replace DB after multiple attempts. The uploaded temp file is at {Temp}", tempTarget);
-                    return StatusCode(500, "Restore failed: cannot replace active DB file (likely locked). Stop the application and try again.");
-                }
-
-                // Optionally remove -wal/-shm of old DB (best-effort)
-                try { var wal = _dbPath + "-wal"; if (System.IO.File.Exists(wal)) System.IO.File.Delete(wal); } catch { }
-                try { var shm = _dbPath + "-shm"; if (System.IO.File.Exists(shm)) System.IO.File.Delete(shm); } catch { }
-
-                // Important: depending on your AppDbContext lifetime, existing DbContexts in memory may still point to stale connections.
-                // Recommend restarting the app after successful restore.
-                _logger.LogInformation("Restore completed, DB replaced. A fallback copy is at {Fallback}", fallback);
-                return Ok(new { message = "Restore completed. A fallback backup was saved (if an original DB existed). Please restart the application to ensure all contexts use the restored database.", fallbackFile = Path.GetFileName(fallback) });
+                // 10) cleanup and redirect to Photos/Index
+                return RedirectToAction("Index", "Photos");
             }
             catch (Exception ex)
             {
@@ -342,10 +343,51 @@ namespace PhotoApp.Controllers
             }
             finally
             {
+                try { if (Directory.Exists(tmpFolder)) Directory.Delete(tmpFolder, true); } catch { }
                 _opLock.Release();
             }
         }
 
+        // helper to copy directory recursively
+        private void CopyDirectory(string sourceDir, string targetDir)
+        {
+            foreach (var dir in Directory.GetDirectories(sourceDir, "*", SearchOption.AllDirectories))
+            {
+                var targetSub = dir.Replace(sourceDir, targetDir);
+                Directory.CreateDirectory(targetSub);
+            }
+
+            foreach (var file in Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories))
+            {
+                var dest = file.Replace(sourceDir, targetDir);
+                var destDir = Path.GetDirectoryName(dest);
+                if (!string.IsNullOrEmpty(destDir) && !Directory.Exists(destDir))
+                    Directory.CreateDirectory(destDir);
+                System.IO.File.Copy(file, dest, overwrite: true);
+            }
+        }
+
+        private static string ExtractDataSourceFromConnectionString(string connString, string contentRoot)
+        {
+            if (string.IsNullOrWhiteSpace(connString)) return null;
+            var lower = connString.ToLowerInvariant();
+            var key = "data source=";
+            var idx = lower.IndexOf(key, StringComparison.OrdinalIgnoreCase);
+            if (idx < 0) { key = "datasource="; idx = lower.IndexOf(key, StringComparison.OrdinalIgnoreCase); }
+            if (idx < 0) return null;
+            var start = idx + key.Length;
+            var rest = connString.Substring(start).Trim();
+            var endIdx = rest.IndexOf(';');
+            var path = endIdx >= 0 ? rest.Substring(0, endIdx) : rest;
+            path = path.Trim().Trim('"').Trim('\'');
+            if (!Path.IsPathRooted(path))
+            {
+                path = Path.GetFullPath(Path.Combine(contentRoot ?? Directory.GetCurrentDirectory(), path));
+            }
+            return path;
+        }
+
+        // kept for compatibility if some callers still use UploadFileModel
         public class UploadFileModel
         {
             public Microsoft.AspNetCore.Http.IFormFile File { get; set; }

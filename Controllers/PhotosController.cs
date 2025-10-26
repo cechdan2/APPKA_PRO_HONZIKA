@@ -33,22 +33,87 @@ public class PhotosController : Controller
 
 
     [AllowAnonymous]
-    public async Task<IActionResult> Index(string? search)
-    {
-        var photos = _context.Photos.AsQueryable();
+    // vlož tento using do horní části souboru:
+    // using PhotoApp.ViewModels;
 
-        if (!string.IsNullOrEmpty(search))
+    public async Task<IActionResult> Index(string search, string supplier, string material, string type, string color)
+    {
+        // připrav query
+        var q = _context.Photos.AsNoTracking().AsQueryable();
+
+        // fulltext-like vyhledávání přes několik polí
+        if (!string.IsNullOrWhiteSpace(search))
         {
-            var s = search.ToLower();
-            photos = photos.Where(p => EF.Functions.Like(p.Name.ToLower(), $"%{s}%")
-                                    || EF.Functions.Like(p.Code.ToLower(), $"%{s}%"));
+            var s = search.Trim();
+            q = q.Where(p =>
+                EF.Functions.Like(p.Name, $"%{s}%") ||
+                EF.Functions.Like(p.OriginalName, $"%{s}%") ||
+                EF.Functions.Like(p.Description, $"%{s}%") ||
+                EF.Functions.Like(p.Notes, $"%{s}%") ||
+                EF.Functions.Like(p.Code, $"%{s}%")
+            );
         }
 
-        photos = photos.OrderByDescending(p => p.UpdatedAt);
+        if (!string.IsNullOrWhiteSpace(supplier))
+            q = q.Where(p => p.Supplier == supplier);
 
-        return View(await photos.ToListAsync());
+        if (!string.IsNullOrWhiteSpace(material))
+            q = q.Where(p => p.Material == material);
+
+        if (!string.IsNullOrWhiteSpace(type))
+            q = q.Where(p => p.Type == type);
+
+        if (!string.IsNullOrWhiteSpace(color))
+            q = q.Where(p => p.Color == color);
+
+        // načti položky (třídění podle potřeby)
+        var items = await q.OrderByDescending(p => p.UpdatedAt).ToListAsync();
+
+        // naplň seznamy pro selecty (distinct hodnoty)
+        var suppliers = await _context.Photos
+            .Where(p => !string.IsNullOrEmpty(p.Supplier))
+            .Select(p => p.Supplier)
+            .Distinct()
+            .OrderBy(x => x)
+            .ToListAsync();
+
+        var materials = await _context.Photos
+            .Where(p => !string.IsNullOrEmpty(p.Material))
+            .Select(p => p.Material)
+            .Distinct()
+            .OrderBy(x => x)
+            .ToListAsync();
+
+        var types = await _context.Photos
+            .Where(p => !string.IsNullOrEmpty(p.Type))
+            .Select(p => p.Type)
+            .Distinct()
+            .OrderBy(x => x)
+            .ToListAsync();
+
+        var colors = await _context.Photos
+            .Where(p => !string.IsNullOrEmpty(p.Color))
+            .Select(p => p.Color)
+            .Distinct()
+            .OrderBy(x => x)
+            .ToListAsync();
+
+        var vm = new PhotoApp.ViewModels.PhotosIndexViewModel
+        {
+            Items = items,
+            Suppliers = suppliers,
+            Materials = materials,
+            Types = types,
+            Colors = colors,
+            Search = search,
+            Supplier = supplier,
+            Material = material,
+            Type = type,
+            Color = color
+        };
+
+        return View(vm);
     }
-
     // GET: Photos/Create
     public IActionResult Create() => View();
 
@@ -227,6 +292,30 @@ public class PhotosController : Controller
         }
         return RedirectToAction(nameof(Index));
     }
+
+    // např. v PhotosController
+    [HttpGet]
+    [AllowAnonymous]
+    [Route("diag/dbinfo")]
+    public async Task<IActionResult> DiagDbInfo([FromServices] AppDbContext ctx)
+    {
+        var conn = ctx.Database.GetDbConnection();
+        var connStr = conn?.ConnectionString ?? "(no connection string)";
+        var dataSource = "(unknown)";
+        try
+        {
+            dataSource = connStr.Contains("Data Source=", StringComparison.OrdinalIgnoreCase)
+                ? /* parsuj Data Source */ connStr
+                : Path.Combine(AppContext.BaseDirectory, "photoapp.db");
+        }
+        catch { }
+
+        var count = 0;
+        try { count = await ctx.Photos.CountAsync(); } catch (Exception ex) { return Problem(ex.Message); }
+
+        return Ok(new { connStr, dataSource, count });
+    }
+
 
     // GET: Photos/Details/5
     [AllowAnonymous]

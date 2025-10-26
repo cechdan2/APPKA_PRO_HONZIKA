@@ -1,16 +1,17 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using OfficeOpenXml;
 using PhotoApp.Data;
-using PhotoApp.Services;
 using PhotoApp.Models;
+using PhotoApp.Services;
 using System;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
-using OfficeOpenXml;
-using System.IO.Compression;
+using static System.Net.WebRequestMethods;
 
 var builder = WebApplication.CreateBuilder(args);
 ExcelPackage.License.SetNonCommercialPersonal("My Name");
@@ -28,9 +29,18 @@ if (string.IsNullOrWhiteSpace(connectionString))
         connectionString = dbPath;
 }
 
+var env = builder.Environment;
+var contentRoot = env.ContentRootPath; // absolutní cesta k projektu
+var dbFile = Path.Combine(contentRoot, "photoapp.db"); // canonical path used by app
+var connectionStringa = $"Data Source={dbFile}";
+
+
 // DbContext
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(connectionString));
+    options.UseSqlite(connectionStringa));
+
+// (volitelnì) expose the db path to configuration for other controllers
+builder.Configuration["SqliteDbPath"] = dbFile;
 
 // Cookie authentication (vlastní)
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

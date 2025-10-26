@@ -3,14 +3,12 @@
 }
 <h2>Database backup / restore</h2>
 
-<div>
-    <button id="downloadBtn">Stáhnout zálohu</button>
-</div>
+<form action="/api/admin/db/restore" method="post" enctype="multipart/form-data">
+    <input type="file" name="backupZip" accept=".zip" required />
+    <button type="submit">Nahrát zálohu (ZIP)</button>
+</form>
 
-<div style="margin-top:20px">
-    <input type="file" id="restoreFile" />
-    <button id="restoreBtn">Nahrát a obnovit</button>
-</div>
+
 
 <script>
     async function downloadBackup() {
