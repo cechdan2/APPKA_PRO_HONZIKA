@@ -1,0 +1,19 @@
+﻿@{
+    ViewData["Title"] = "DB Backup";
+}
+<h2>Database backup / restore</h2>
+
+<div>
+    <button id="downloadBtn">Stáhnout zálohu</button>
+</div>
+
+<div style="margin-top:20px">
+    <input type="file" id="restoreFile" />
+    <button id="restoreBtn">Nahrát a obnovit</button>
+</div>
+
+<script src="~/js/db-backup.js"></script>
+<script>
+    document.getElementById('downloadBtn').addEventListener('click', () => downloadBackup());
+    document.getElementById('restoreBtn').addEventListener('click', () => uploadRestore(document.getElementById('restoreFile')));
+</script>

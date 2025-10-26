@@ -1,4 +1,415 @@
-body { font-family: Arial, Helvetica, sans-serif; margin:0; padding:0; background:#f5f7fb; color:#222; }
-.container { padding:1rem; }
-.topnav { background:#0078d7; padding:0.75rem 1rem; }
-.topnav a { color:white; margin-right:1rem; text-decoration:none; font-weight:600; }
+/* =====================================================
+   Globální styly ODPO s.r.o. – Katalog vzorkù plastù
+   ===================================================== */
+
+/* --- Root promìnné barev a mezery --- */
+:root {
+    --brand: #16a34a;
+    --brand-dark: #166534;
+    --border: #dbe7d9;
+    --bg: #f4fbf4;
+    --text: #0b1f0b;
+    --white: #fff;
+    --pad: 12px;
+    --gap: 8px;
+    --radius: 12px;
+}
+
+/* --- Reset & základní typografie --- */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu;
+    color: var(--text);
+    background: var(--bg);
+}
+
+/* --- Header --- */
+header {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+}
+
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 14px var(--pad);
+}
+
+.header-inner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+    .brand img {
+        height: 36px;
+        width: auto;
+        display: block;
+    }
+
+    .brand h1 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--brand-dark);
+    }
+
+/* --- Header akce (tlaèítka) --- */
+.header-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--white);
+    color: inherit;
+    text-decoration: none;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+    .action-btn.primary {
+        background: var(--brand);
+        color: var(--white);
+        border-color: var(--brand-dark);
+    }
+
+    .action-btn.destructive {
+        background: #ef4444;
+        color: var(--white);
+        border-color: #b91c1c;
+    }
+
+    .action-btn:hover {
+        background: #f2fdf3;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+/* --- Tlaèítko pro schování sloupce Dodavatel --- */
+#toggleSupplierBtn {
+    margin: 10px 0;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    background-color: #f7f7f7;
+    cursor: pointer;
+}
+
+    #toggleSupplierBtn:hover {
+        background-color: #eaeaea;
+    }
+
+/* --- Tlaèítka formuláøù --- */
+button {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--white);
+    cursor: pointer;
+}
+
+    button.primary {
+        background: var(--brand);
+        color: #fff;
+        border-color: var(--brand-dark);
+    }
+
+    button.destructive {
+        background: #ef4444;
+        color: #fff;
+        border-color: #b91c1c;
+    }
+
+    button.pill {
+        border-radius: 999px;
+    }
+
+/* --- Karty, kontejnery, bloky --- */
+.card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: var(--pad);
+}
+
+.cards-container {
+    display: grid;
+    gap: 12px;
+}
+
+.card-item {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, .05);
+}
+
+.card-top {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+    .card-top img {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+    }
+
+.card-body {
+    flex: 1;
+}
+
+.card-title {
+    font-weight: 700;
+    color: var(--brand-dark);
+}
+
+.card-sub {
+    font-size: 13px;
+    color: #555;
+}
+
+.card-props {
+    margin-top: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.pill {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: #e6f9e9;
+    border: 1px solid var(--border);
+    font-size: 11px;
+}
+
+.card-actions {
+    margin-top: 8px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.muted {
+    color: #666;
+    font-size: 12px;
+}
+
+/* --- Tabulky --- */
+.table-wrap {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+th, td {
+    padding: 8px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    text-align: left;
+}
+
+th {
+    color: var(--brand-dark);
+    font-weight: 700;
+    font-size: 12px;
+}
+
+tr:hover {
+    background: #f0fbf3;
+}
+
+.thumb {
+    width: 56px;
+    height: 56px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.img-link {
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+}
+
+/* --- Detailní pohled (mobile) --- */
+.detail-list {
+    margin-top: 12px;
+    display: grid;
+    gap: 6px;
+}
+
+.detail-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+.field-label {
+    width: 130px;
+    font-weight: 700;
+    color: #333;
+    flex-shrink: 0;
+    font-size: 13px;
+}
+
+.field-value {
+    background: #fbfff9;
+    border: 1px solid var(--border);
+    padding: 8px;
+    border-radius: 8px;
+    flex: 1;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 13px;
+}
+
+/* --- Uživatelská oblast (pravý horní roh) --- */
+.header-right {
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.user-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: transparent;
+}
+
+.user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #e6f9e9, #d1f0d6);
+    color: #166534;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    border: 1px solid #dbe7d9;
+    flex-shrink: 0;
+}
+
+.user-pill {
+    font-size: 13px;
+    color: #133a13;
+    background: #fbfff9;
+    border: 1px solid #e6f1e6;
+    padding: 6px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.action-pill {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid #dbe7d9;
+    background: #fff;
+    color: inherit;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+    .action-pill:hover {
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+.logout-form {
+    margin: 0;
+    display: inline-block;
+}
+
+/* --- Ostatní prvky --- */
+.footer {
+    text-align: center;
+    color: #3b6b3b;
+    font-size: 12px;
+    padding: 20px 0;
+}
+
+.toolbar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+    .toolbar input[type="search"] {
+        width: 100%;
+        padding: 7px;
+        border-radius: 7px;
+        border: 1px solid var(--border);
+    }
+
+/* --- Responsivní pøepínaè tabulka / karty --- */
+@media (max-width: 767px) {
+    #tableView {
+        display: none;
+    }
+
+    #cardsView {
+        display: grid;
+    }
+}
+
+@media (min-width: 768px) {
+    #tableView {
+        display: block;
+    }
+
+    #cardsView {
+        display: none;
+    }
+}
+
+/* --- Responsivní úpravy tlaèítek a user sekce --- */
+@media (max-width: 600px) {
+    .action-btn {
+        padding: 6px 10px;
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 520px) {
+    .user-pill {
+        display: none;
+    }
+}

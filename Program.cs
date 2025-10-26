@@ -15,11 +15,22 @@ using System.IO.Compression;
 var builder = WebApplication.CreateBuilder(args);
 ExcelPackage.License.SetNonCommercialPersonal("My Name");
 
+// Configure SQLite connection string:
+// prefer ConnectionStrings:DefaultConnection, otherwise fallback to SqliteDbPath or default file
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    var dbPath = builder.Configuration["SqliteDbPath"] ?? "photoapp.db";
+    // if user provided just a file name, convert to Data Source=... format
+    if (!dbPath.Trim().Contains("="))
+        connectionString = $"Data Source={dbPath}";
+    else
+        connectionString = dbPath;
+}
 
 // DbContext
-builder.Services.AddDbContext<AppDbContext>
-    (options =>
-    options.UseSqlite("Data Source=photoapp.db"));
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlite(connectionString));
 
 // Cookie authentication (vlastní)
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

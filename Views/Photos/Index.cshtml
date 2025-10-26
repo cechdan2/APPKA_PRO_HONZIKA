@@ -56,6 +56,20 @@
             width: auto
         }
 
+
+    #toggleSupplierBtn {
+        margin-bottom: 10px;
+        padding: 6px 12px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+        background-color: #f7f7f7;
+        cursor: pointer;
+    }
+
+        #toggleSupplierBtn:hover {
+            background-color: #eaeaea;
+        }
+
     h1 {
         margin: 0;
         font-size: 18px;
@@ -371,11 +385,12 @@
             <a href="@Url.Action("Create", "Photos")" class="action-btn primary">+ Nový vzorek</a>
             <a href="@Url.Action("ExportZip", "Photos")" class="action-btn">Export ZIP (CSV + obrázky)</a>
             <a href="@Url.Action("ExportExcelWithImages", "Photos")" class="action-btn">Export XLSX s obrázky</a>
-            <a href="@Url.Action("Export", "Backup")" class="action-btn">Stáhnout zálohu (DB + uploads)</a>
+            <a href="@Url.Action("GetBackup", "DatabaseBackup")" class="action-btn">Stáhnout zálohu (DB + uploads)</a>
             <a href="@Url.Action("Import", "Photos")" class="action-btn">Import</a>
+            <a href="@Url.Action("Database", "Admin")" class="action-btn">Obnovit ze zálohy</a>
 
 
-            <button type="button" id="showRestoreBtn" class="action-btn">Obnovit ze zálohy</button>
+       
 
             @if (User?.Identity?.IsAuthenticated ?? false)
             {
@@ -592,6 +607,40 @@
             </tbody>
         </table>
     </div>
+
+
+    <button id="toggleSupplierBtn">Schovat dodavatele</button>
+
+    <script>
+        document.getElementById("toggleSupplierBtn").addEventListener("click", function() {
+            // najdi všechny buňky ve sloupci "Dodavatel" (včetně hlavičky)
+            const table = document.querySelector("#tableView table");
+            const supplierIndex = Array.from(table.querySelectorAll("th"))
+                .findIndex(th => th.textContent.trim() === "Dodavatel");
+
+            if (supplierIndex === -1) return; // bezpečnostní kontrola
+
+            const rows = table.querySelectorAll("tr");
+            let hidden = false;
+
+            // zjisti, jestli je sloupec právě schovaný
+            if (rows[0].querySelectorAll("th, td")[supplierIndex].style.display === "none") {
+                hidden = true;
+            }
+
+            // přepni viditelnost všech buněk v tomto sloupci
+            rows.forEach(row => {
+                const cell = row.querySelectorAll("th, td")[supplierIndex];
+                if (cell) {
+                    cell.style.display = hidden ? "" : "none";
+                }
+            });
+
+            // změna textu tlačítka
+            this.textContent = hidden ? "Schovat dodavatele" : "Zobrazit dodavatele";
+        });
+    </script>
+
 
     <!-- Mobile: cards with full list of fields -->
     <div id="cardsView" class="cards-container" aria-label="Katalog vzorků - kartičky">

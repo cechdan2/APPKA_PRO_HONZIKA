@@ -1,0 +1,60 @@
+﻿@{
+    ViewData["Title"] = "DB Backup / Restore";
+}
+<h2>Database backup / restore</h2>
+
+<div>
+    <button id="downloadBtn">Stáhnout zálohu</button>
+</div>
+
+<div style="margin-top:20px">
+    <input type="file" id="restoreFile" />
+    <button id="restoreBtn">Nahrát a obnovit</button>
+</div>
+
+<script>
+    async function downloadBackup() {
+      const resp = await fetch('/api/admin/db/backup', { method: 'GET', credentials: 'include' });
+      if (!resp.ok) {
+        const t = await resp.text();
+        alert('Chyba při vytváření zálohy: ' + t);
+        return;
+      }
+      const blob = await resp.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      // jméno souboru bude nastaveno z Content-Disposition, ale pro jistotu:
+      a.download = 'photoapp-backup.zip';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    }
+
+    async function uploadRestore(fileInput) {
+      const file = fileInput.files[0];
+      if (!file) return alert('Vyber soubor.');
+
+      if (file.size > 200 * 1024 * 1024) return alert('Soubor je příliš velký.');
+
+      const form = new FormData();
+      form.append('file', file);
+
+      const resp = await fetch('/api/admin/db/restore', {
+        method: 'POST',
+        body: form,
+        credentials: 'include'
+      });
+
+      const txt = await resp.text();
+      if (!resp.ok) {
+        alert('Restore failed: ' + txt);
+      } else {
+        alert('Restore OK: ' + txt);
+      }
+    }
+
+    document.getElementById('downloadBtn').addEventListener('click', downloadBackup);
+    document.getElementById('restoreBtn').addEventListener('click', () => uploadRestore(document.getElementById('restoreFile')));
+</script>

@@ -74,7 +74,7 @@ public class HomeController : Controller
 
         return RedirectToAction(nameof(Index));
     }
-
+    // Replace the existing ClearPhotos method with this implementation
     // POST: /Home/ClearPhotos
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -82,7 +82,7 @@ public class HomeController : Controller
     {
         try
         {
-            // 1) Smažeme všechny záznamy v DB
+            // 1) Smažeme všechny záznamy v DB (tabulka Photos)
             var allPhotos = await _context.Photos.ToListAsync();
             if (allPhotos.Any())
             {
@@ -91,42 +91,96 @@ public class HomeController : Controller
             }
 
             // 2) Smažeme všechny soubory a podsložky v wwwroot/uploads
-            var uploadsDir = Path.Combine(_env.WebRootPath, "uploads");
-            if (Directory.Exists(uploadsDir))
+            var uploadsDir = Path.Combine(_env.WebRootPath ?? Path.Combine(AppContext.BaseDirectory, "wwwroot"), "uploads");
+            try
             {
-                var di = new DirectoryInfo(uploadsDir);
-
-                // smažeme soubory
-                foreach (var file in di.GetFiles())
+                if (Directory.Exists(uploadsDir))
                 {
-                    try
-                    {
-                        file.Delete();
-                    }
-                    catch (Exception ex)
-                    {
-                        // tady mùžeš logovat chyby napø. _logger.LogError(ex, "Chyba mazání souboru");
-                    }
+                    // smažeme celou složku uploads a znovu ji vytvoøíme èistou
+                    Directory.Delete(uploadsDir, recursive: true);
                 }
+                // vždy vytvoøíme prázdnou složku uploads (aplikace oèekává její existenci)
+                Directory.CreateDirectory(uploadsDir);
+            }
+            catch (Exception ex)
+            {
+                // logovat pokud máš _logger, jinak uložíme do TempData
+                try { _logger?.LogWarning(ex, "Failed to clear/create uploads directory"); } catch { }
+                TempData["Error"] = "Složku uploads se nepodaøilo plnì vyèistit: " + ex.Message;
+                return RedirectToAction("Index", "Photos");
+            }
 
-                // smažeme podsložky (rekurzivnì)
-                foreach (var dir in di.GetDirectories())
+            // 3) Natvrdo smazat SQLite soubor databáze (a -wal, -shm)
+            var dbPath = Path.Combine(AppContext.BaseDirectory, "photoapp.db");
+            var walPath = dbPath + "-wal";
+            var shmPath = dbPath + "-shm";
+
+            // Pokusíme se zavøít pøipojení DbContextu, aby nebyl soubor zablokovaný
+            try
+            {
+                await _context.Database.CloseConnectionAsync();
+            }
+            catch
+            {
+                // ignorujeme chybu pøi zavírání, pokusíme se smazat pøes retry
+            }
+
+            bool dbDeleted = false;
+            if (System.IO.File.Exists(dbPath))
+            {
+                const int maxAttempts = 8;
+                for (int attempt = 1; attempt <= maxAttempts; attempt++)
                 {
                     try
                     {
-                        dir.Delete(true);
+                        // uvolnìní pøípadných nedokonèených streamù
+                        GC.Collect();
+                        GC.WaitForPendingFinalizers();
+
+                        System.IO.File.Delete(dbPath);
+                        dbDeleted = true;
+                        break;
+                    }
+                    catch (IOException ioEx)
+                    {
+                        try { _logger?.LogWarning(ioEx, "Attempt {Attempt} to delete DB file failed (in use).", attempt); } catch { }
+                        // èekáme a zkusíme znovu
+                        await Task.Delay(300 * attempt);
+                    }
+                    catch (UnauthorizedAccessException uaEx)
+                    {
+                        try { _logger?.LogWarning(uaEx, "Attempt {Attempt} to delete DB file failed (access).", attempt); } catch { }
+                        await Task.Delay(300 * attempt);
                     }
                     catch (Exception ex)
                     {
-                        // tady mùžeš logovat chyby napø. _logger.LogError(ex, "Chyba mazání složky");
+                        try { _logger?.LogError(ex, "Unexpected error when deleting DB file"); } catch { }
+                        break;
                     }
                 }
             }
+            else
+            {
+                // pokud soubor neexistuje, považujeme to za úspìch (už je smazaný)
+                dbDeleted = true;
+            }
 
-            TempData["Message"] = "Všechny záznamy v tabulce Photos a soubory ve wwwroot/uploads byly odstranìny.";
+            // Pokusíme se smazat -wal a -shm soubory (ignorujeme chyby)
+            try { if (System.IO.File.Exists(walPath)) System.IO.File.Delete(walPath); } catch (Exception ex) { _logger?.LogWarning(ex, "Failed to delete wal file"); }
+            try { if (System.IO.File.Exists(shmPath)) System.IO.File.Delete(shmPath); } catch (Exception ex) { _logger?.LogWarning(ex, "Failed to delete shm file"); }
+
+            if (!dbDeleted)
+            {
+                TempData["Error"] = "Databázový soubor se nepodaøilo smazat (pravdìpodobnì je zamèen). Zastav aplikaci a zkuste to znovu.";
+                return RedirectToAction("Index", "Photos");
+            }
+
+            TempData["Message"] = "Všechny záznamy v tabulce Photos byly odstranìny, uploads byla vyprázdnìna a databázový soubor byl smazán.";
         }
         catch (Exception ex)
         {
+            // obecné zachycení chyb
+            try { _logger?.LogError(ex, "Error in ClearPhotos"); } catch { }
             TempData["Error"] = "Chyba pøi mazání: " + ex.Message;
         }
 
