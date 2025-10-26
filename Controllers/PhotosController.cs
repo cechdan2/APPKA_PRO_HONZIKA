@@ -28,14 +28,21 @@ public class PhotosController : Controller
         return View();
     }
 
-
-
-    [AllowAnonymous]
+    [Authorize]
     // vlož tento using do horní části souboru:
     // using PhotoApp.ViewModels;
     // doplňte required using: using PhotoApp.ViewModels;
-    public async Task<IActionResult> Index(string search, string supplier, string material, string type, string color, string name, string position, string filler)
+    public async Task<IActionResult> Index(string search, string supplier, string material, string type, string color, string name, string position, string filler, bool forceDesktop = false)
     {
+        // Detekce mobilního zařízení na základě User-Agent
+        var userAgent = HttpContext.Request.Headers["User-Agent"].ToString();
+        bool isMobile = userAgent.Contains("Mobile") || userAgent.Contains("Android") || userAgent.Contains("iPhone") || userAgent.Contains("iPad") || userAgent.Contains("Windows Phone");
+
+        if (isMobile && !forceDesktop)
+        {
+            return RedirectToAction("Index_phone", new { search, supplier, material, type, color, name, position, filler, forceDesktop });
+        }
+
         // připrav query
         var q = _context.Photos.AsNoTracking().AsQueryable();
 
@@ -150,6 +157,251 @@ public class PhotosController : Controller
 
         return View(vm);
     }
+
+    // Nová akce pro mobilní zařízení
+    [Authorize]
+    public async Task<IActionResult> Index_phone(string search, string supplier, string material, string type, string color, string name, string position, string filler, bool forceDesktop = false)
+    {
+        // Zde můžete implementovat logiku podobnou Index, ale s úpravami pro mobil (např. jiné view nebo data)
+        // Pro jednoduchost, můžete použít stejnou logiku jako v Index, ale vrátit jiné View
+        // Příklad: return View("Index_phone", vm); kde Index_phone.cshtml je upravený view pro mobil
+
+        // Pro účely této odpovědi předpokládám, že budete mít Index_phone.cshtml s mobilní logikou
+        // Zde je stejná logika jako v Index pro demonstraci
+
+        if (forceDesktop)
+        {
+            // Přepnout na desktop view
+            // připrav query
+            var q = _context.Photos.AsNoTracking().AsQueryable();
+
+            // fulltext-like vyhledávání přes několik polí (pokryje i Name)
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var s = search.Trim();
+                q = q.Where(p =>
+                    EF.Functions.Like(p.Name, $"%{s}%") ||
+                    EF.Functions.Like(p.OriginalName, $"%{s}%") ||
+                    EF.Functions.Like(p.Description, $"%{s}%") ||
+                    EF.Functions.Like(p.Notes, $"%{s}%") ||
+                    EF.Functions.Like(p.Code, $"%{s}%")
+                );
+            }
+
+            if (!string.IsNullOrWhiteSpace(supplier))
+                q = q.Where(p => p.Supplier == supplier);
+
+            if (!string.IsNullOrWhiteSpace(material))
+                q = q.Where(p => p.Material == material);
+
+            if (!string.IsNullOrWhiteSpace(type))
+                q = q.Where(p => p.Type == type);
+
+            if (!string.IsNullOrWhiteSpace(color))
+                q = q.Where(p => p.Color == color);
+
+            // nové přesné filtry
+            if (!string.IsNullOrWhiteSpace(name))
+                q = q.Where(p => p.Name == name);
+
+            if (!string.IsNullOrWhiteSpace(position))
+                q = q.Where(p => p.Position == position);
+
+            if (!string.IsNullOrWhiteSpace(filler))
+                q = q.Where(p => p.Filler == filler);
+
+            // načti položky (třídění podle potřeby)
+            var items = await q.OrderByDescending(p => p.UpdatedAt).ToListAsync();
+
+            // naplň seznamy pro selecty (distinct hodnoty)
+            var suppliers = await _context.Photos
+                .Where(p => !string.IsNullOrEmpty(p.Supplier))
+                .Select(p => p.Supplier)
+                .Distinct()
+                .OrderBy(x => x)
+                .ToListAsync();
+
+            var materials = await _context.Photos
+                .Where(p => !string.IsNullOrEmpty(p.Material))
+                .Select(p => p.Material)
+                .Distinct()
+                .OrderBy(x => x)
+                .ToListAsync();
+
+            var types = await _context.Photos
+                .Where(p => !string.IsNullOrEmpty(p.Type))
+                .Select(p => p.Type)
+                .Distinct()
+                .OrderBy(x => x)
+                .ToListAsync();
+
+            var colors = await _context.Photos
+                .Where(p => !string.IsNullOrEmpty(p.Color))
+                .Select(p => p.Color)
+                .Distinct()
+                .OrderBy(x => x)
+                .ToListAsync();
+
+            // nové seznamy
+            var names = await _context.Photos
+                .Where(p => !string.IsNullOrEmpty(p.Name))
+                .Select(p => p.Name)
+                .Distinct()
+                .OrderBy(x => x)
+                .ToListAsync();
+
+            var positions = await _context.Photos
+                .Where(p => !string.IsNullOrEmpty(p.Position))
+                .Select(p => p.Position)
+                .Distinct()
+                .OrderBy(x => x)
+                .ToListAsync();
+
+            var fillers = await _context.Photos
+                .Where(p => !string.IsNullOrEmpty(p.Filler))
+                .Select(p => p.Filler)
+                .Distinct()
+                .OrderBy(x => x)
+                .ToListAsync();
+
+            var vm = new PhotoApp.ViewModels.PhotosIndexViewModel
+            {
+                Items = items,
+                Suppliers = suppliers,
+                Materials = materials,
+                Types = types,
+                Colors = colors,
+                Names = names,
+                Positions = positions,
+                Fillers = fillers,
+                Search = search,
+                Supplier = supplier,
+                Material = material,
+                Type = type,
+                Color = color,
+                Name = name,
+                Position = position,
+                Filler = filler
+            };
+
+            return View(vm); // Vrátí Index.cshtml (desktop)
+        }
+
+        // připrav query
+        var q2 = _context.Photos.AsNoTracking().AsQueryable();
+
+        // fulltext-like vyhledávání přes několik polí (pokryje i Name)
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.Trim();
+            q2 = q2.Where(p =>
+                EF.Functions.Like(p.Name, $"%{s}%") ||
+                EF.Functions.Like(p.OriginalName, $"%{s}%") ||
+                EF.Functions.Like(p.Description, $"%{s}%") ||
+                EF.Functions.Like(p.Notes, $"%{s}%") ||
+                EF.Functions.Like(p.Code, $"%{s}%")
+            );
+        }
+
+        if (!string.IsNullOrWhiteSpace(supplier))
+            q2 = q2.Where(p => p.Supplier == supplier);
+
+        if (!string.IsNullOrWhiteSpace(material))
+            q2 = q2.Where(p => p.Material == material);
+
+        if (!string.IsNullOrWhiteSpace(type))
+            q2 = q2.Where(p => p.Type == type);
+
+        if (!string.IsNullOrWhiteSpace(color))
+            q2 = q2.Where(p => p.Color == color);
+
+        // nové přesné filtry
+        if (!string.IsNullOrWhiteSpace(name))
+            q2 = q2.Where(p => p.Name == name);
+
+        if (!string.IsNullOrWhiteSpace(position))
+            q2 = q2.Where(p => p.Position == position);
+
+        if (!string.IsNullOrWhiteSpace(filler))
+            q2 = q2.Where(p => p.Filler == filler);
+
+        // načti položky (třídění podle potřeby)
+        var items2 = await q2.OrderByDescending(p => p.UpdatedAt).ToListAsync();
+
+        // naplň seznamy pro selecty (distinct hodnoty)
+        var suppliers2 = await _context.Photos
+            .Where(p => !string.IsNullOrEmpty(p.Supplier))
+            .Select(p => p.Supplier)
+            .Distinct()
+            .OrderBy(x => x)
+            .ToListAsync();
+
+        var materials2 = await _context.Photos
+            .Where(p => !string.IsNullOrEmpty(p.Material))
+            .Select(p => p.Material)
+            .Distinct()
+            .OrderBy(x => x)
+            .ToListAsync();
+
+        var types2 = await _context.Photos
+            .Where(p => !string.IsNullOrEmpty(p.Type))
+            .Select(p => p.Type)
+            .Distinct()
+            .OrderBy(x => x)
+            .ToListAsync();
+
+        var colors2 = await _context.Photos
+            .Where(p => !string.IsNullOrEmpty(p.Color))
+            .Select(p => p.Color)
+            .Distinct()
+            .OrderBy(x => x)
+            .ToListAsync();
+
+        // nové seznamy
+        var names2 = await _context.Photos
+            .Where(p => !string.IsNullOrEmpty(p.Name))
+            .Select(p => p.Name)
+            .Distinct()
+            .OrderBy(x => x)
+            .ToListAsync();
+
+        var positions2 = await _context.Photos
+            .Where(p => !string.IsNullOrEmpty(p.Position))
+            .Select(p => p.Position)
+            .Distinct()
+            .OrderBy(x => x)
+            .ToListAsync();
+
+        var fillers2 = await _context.Photos
+            .Where(p => !string.IsNullOrEmpty(p.Filler))
+            .Select(p => p.Filler)
+            .Distinct()
+            .OrderBy(x => x)
+            .ToListAsync();
+
+        var vm2 = new PhotoApp.ViewModels.PhotosIndexViewModel
+        {
+            Items = items2,
+            Suppliers = suppliers2,
+            Materials = materials2,
+            Types = types2,
+            Colors = colors2,
+            Names = names2,
+            Positions = positions2,
+            Fillers = fillers2,
+            Search = search,
+            Supplier = supplier,
+            Material = material,
+            Type = type,
+            Color = color,
+            Name = name,
+            Position = position,
+            Filler = filler
+        };
+
+        return View("Index_phone", vm2); // Vrátí Index_phone.cshtml
+    }
+
     // GET: Photos/Create
     public IActionResult Create() => View();
 
@@ -351,7 +603,6 @@ public class PhotosController : Controller
 
         return Ok(new { connStr, dataSource, count });
     }
-
 
     // GET: Photos/Details/5
     [AllowAnonymous]

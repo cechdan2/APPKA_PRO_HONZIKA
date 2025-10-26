@@ -1,8 +1,8 @@
-/* =====================================================
-   Globální styly ODPO s.r.o. – Katalog vzorkù plastù
+ï»¿/* =====================================================
+   GlobÃ¡lnÃ­ styly ODPO s.r.o. â€“ Katalog vzorkÅ¯ plastÅ¯
    ===================================================== */
 
-/* --- Root promìnné barev a mezery --- */
+/* --- Root promÄ›nnÃ© barev a mezery --- */
 :root {
     --brand: #16a34a;
     --brand-dark: #166534;
@@ -15,7 +15,7 @@
     --radius: 12px;
 }
 
-/* --- Reset & základní typografie --- */
+/* --- Reset & zÃ¡kladnÃ­ typografie --- */
 * {
     box-sizing: border-box;
 }
@@ -68,7 +68,7 @@ header {
         color: var(--brand-dark);
     }
 
-/* --- Header akce (tlaèítka) --- */
+/* --- Header akce (tlaÄÃ­tka) --- */
 .header-actions {
     margin-left: auto;
     display: flex;
@@ -109,7 +109,7 @@ header {
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     }
 
-/* --- Tlaèítko pro schování sloupce Dodavatel --- */
+/* --- TlaÄÃ­tko pro schovÃ¡nÃ­ sloupce Dodavatel --- */
 #toggleSupplierBtn {
     margin: 10px 0;
     padding: 6px 12px;
@@ -123,7 +123,7 @@ header {
         background-color: #eaeaea;
     }
 
-/* --- Tlaèítka formuláøù --- */
+/* --- TlaÄÃ­tka formulÃ¡Å™Å¯ --- */
 button {
     padding: 8px 12px;
     border: 1px solid var(--border);
@@ -267,7 +267,7 @@ tr:hover {
     cursor: pointer;
 }
 
-/* --- Detailní pohled (mobile) --- */
+/* --- DetailnÃ­ pohled (mobile) --- */
 .detail-list {
     margin-top: 12px;
     display: grid;
@@ -299,7 +299,7 @@ tr:hover {
     font-size: 13px;
 }
 
-/* --- Uivatelská oblast (pravı horní roh) --- */
+/* --- UÅ¾ivatelskÃ¡ oblast (pravÃ½ hornÃ­ roh) --- */
 .header-right {
     margin-top: 8px;
     display: flex;
@@ -318,7 +318,7 @@ tr:hover {
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #e6f9e9, #d1f0d6);
+    background: linear-gradient(135deg,#e6f9e9,#d1f0d6);
     color: #166534;
     display: inline-flex;
     align-items: center;
@@ -350,7 +350,7 @@ tr:hover {
 }
 
     .action-pill:hover {
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     }
 
 .logout-form {
@@ -358,7 +358,7 @@ tr:hover {
     display: inline-block;
 }
 
-/* --- Ostatní prvky --- */
+/* --- OstatnÃ­ prvky --- */
 .footer {
     text-align: center;
     color: #3b6b3b;
@@ -379,28 +379,13 @@ tr:hover {
         border: 1px solid var(--border);
     }
 
-/* --- Responsivní pøepínaè tabulka / karty --- */
-@media (max-width: 767px) {
-    #tableView {
-        display: none;
-    }
+/* --- POZOR: zruÅ¡en koliznÃ­ pÅ™epÃ­naÄ table/cards. PÅ™epÃ­nÃ¡nÃ­ Å™eÅ¡Ã­ Index.cshtml --- */
+/* PÅ¯vodnÃ­ blok: 
+@media (max-width: 767px) { #tableView { display:none } #cardsView { display:grid } }
+@media (min-width: 768px) { #tableView { display:block } #cardsView { display:none } }
+   byl odstranÄ›n, aby nepÅ™ebÃ­jel inline @media v Index.cshtml. */
 
-    #cardsView {
-        display: grid;
-    }
-}
-
-@media (min-width: 768px) {
-    #tableView {
-        display: block;
-    }
-
-    #cardsView {
-        display: none;
-    }
-}
-
-/* --- Responsivní úpravy tlaèítek a user sekce --- */
+/* --- ResponsivnÃ­ Ãºpravy tlaÄÃ­tek a user sekce --- */
 @media (max-width: 600px) {
     .action-btn {
         padding: 6px 10px;

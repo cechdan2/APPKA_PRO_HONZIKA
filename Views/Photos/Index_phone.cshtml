@@ -261,6 +261,87 @@
     .table-wrap {
         overflow-x: auto;
     }
+
+    /* Mobil: tabulka se rozpadne na „kartičky“ bez duplikace markup */
+    @@media (max-width: 767px) {
+        /* Přestyluj tabulku do karet */
+        #tableView {
+            display: block;
+        }
+            /* důležité: .table-wrap je na stejném elementu jako #tableView */
+            #tableView.table-wrap {
+                overflow: visible;
+            }
+
+            #tableView table {
+                border: 0;
+                width: 100%;
+            }
+
+            #tableView thead {
+                display: none;
+            }
+
+            #tableView tbody,
+            #tableView tr,
+            #tableView td {
+                display: block;
+                width: 100%;
+            }
+
+            #tableView tr {
+                margin-bottom: 12px;
+                background: #fff;
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                padding: 12px;
+            }
+
+            #tableView td {
+                border: 0;
+                border-bottom: 1px solid var(--border);
+                padding: 8px 0;
+            }
+
+                #tableView td:last-child {
+                    border-bottom: 0;
+                }
+                /* Popisky polí z atributu data-label */
+                #tableView td[data-label]::before {
+                    content: attr(data-label);
+                    display: block;
+                    font-weight: 700;
+                    color: #333;
+                    margin-bottom: 4px;
+                    font-size: 12px;
+                }
+        /* Na mobilu nedává smysl tlačítko pro skrývání sloupce tabulky */
+        #toggleSupplierBtn {
+            display: none;
+        }
+        /* Větší náhled na mobilu */
+        .thumb {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 8px;
+        }
+        /* Kompaktnější tlačítka v headeru */
+        .action-btn {
+            padding: 6px 10px;
+            font-size: 13px;
+        }
+        /* Skryj dlouhé jméno uživatele */
+        .user-pill {
+            display: none;
+        }
+    }
+
+    @@media (max-width:600px) {
+        .action-btn {
+            padding: 6px 10px;
+            font-size: 13px;
+        }
+    }
 </style>
 
 <header>
@@ -439,7 +520,7 @@
                 {
                     var src = ImageSrc(item);
                     <tr>
-                        <td>
+                        <td data-label="Foto">
                             @if (!string.IsNullOrEmpty(src))
                             {
                                 <a href="@Url.Action("Details", new { id = item.Id })" class="img-link">
@@ -451,19 +532,19 @@
                                 <span>—</span>
                             }
                         </td>
-                        <td>@Safe(item.Position)</td>
-                        <td>@Safe(item.ExternalId)</td>
-                        <td>@Safe(item.Supplier)</td>
-                        <td style="white-space:pre-wrap;">@Safe(item.OriginalName)</td>
-                        <td>@Safe(item.Material)</td>
-                        <td>@Safe(item.Form)</td>
-                        <td>@Safe(item.Filler)</td>
-                        <td>@Safe(item.Color)</td>
-                        <td style="white-space:pre-wrap; max-width:280px;">@(string.IsNullOrWhiteSpace(item.Description) ? "-" : item.Description)</td>
-                        <td>@Safe(item.MonthlyQuantity)</td>
-                        <td>@Safe(item.Mfi)</td>
-                        <td style="white-space:pre-wrap; max-width:280px;">@(string.IsNullOrWhiteSpace(item.Notes) ? "-" : item.Notes)</td>
-                        <td>
+                        <td data-label="Pozice">@Safe(item.Position)</td>
+                        <td data-label="Id">@Safe(item.ExternalId)</td>
+                        <td data-label="Dodavatel">@Safe(item.Supplier)</td>
+                        <td data-label="Původní název" style="white-space:pre-wrap;">@Safe(item.OriginalName)</td>
+                        <td data-label="Materiál">@Safe(item.Material)</td>
+                        <td data-label="Forma">@Safe(item.Form)</td>
+                        <td data-label="Plnivo">@Safe(item.Filler)</td>
+                        <td data-label="Barva">@Safe(item.Color)</td>
+                        <td data-label="Popis" style="white-space:pre-wrap; max-width:280px;">@(string.IsNullOrWhiteSpace(item.Description) ? "-" : item.Description)</td>
+                        <td data-label="Množství (měsíc)">@Safe(item.MonthlyQuantity)</td>
+                        <td data-label="MFI">@Safe(item.Mfi)</td>
+                        <td data-label="Poznámky" style="white-space:pre-wrap; max-width:280px;">@(string.IsNullOrWhiteSpace(item.Notes) ? "-" : item.Notes)</td>
+                        <td data-label="Akce">
                             <a href="@Url.Action("Details", new { id = item.Id })" title="Detail">🔍</a>
                             <a href="@Url.Action("Edit", new { id = item.Id })" title="Upravit">✏️</a>
                             <a href="@Url.Action("Delete", new { id = item.Id })" class="destructive" title="Smazat">🗑</a>

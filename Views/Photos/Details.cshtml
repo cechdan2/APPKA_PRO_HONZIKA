@@ -11,14 +11,7 @@
     // použijeme ImagePath pokud existuje, jinak PhotoPath (kompatibilita)
     var imageSrc = !string.IsNullOrWhiteSpace(Model.ImagePath) ? Url.Content(Model.ImagePath) : (string.IsNullOrWhiteSpace(Model.PhotoPath) ? null : Url.Content(Model.PhotoPath));
 
-    // Jednoduché Safe: vrací původní text (Razor ho automaticky HTML-encoduje při výpisu),
-    // takže diakritika (háčky/čárky) se zobrazí správně.
-    string Safe(string? s)
-    {
-        if (string.IsNullOrWhiteSpace(s))
-            return "-";
-        return s;
-    }
+    string Safe(string s) => string.IsNullOrWhiteSpace(s) ? "-" : Html.Raw(Html.Encode(s)).ToString();
     string SafeDate(DateTime dt) => (dt == DateTime.MinValue) ? "-" : dt.ToLocalTime().ToString("g");
 }
 <style>
@@ -153,18 +146,21 @@
     }
 
     @@media (max-width:900px) {
-        .layout {
-            grid-template-columns: 1fr;
-        }
+        .layout
 
-        .media img.detail-img {
-            width: 200px;
-            height: 200px;
-        }
+    {
+        grid-template-columns: 1fr;
+    }
 
-        .fields {
-            grid-template-columns: 1fr;
-        }
+    .media img.detail-img {
+        width: 200px;
+        height: 200px;
+    }
+
+    .fields {
+        grid-template-columns: 1fr;
+    }
+
     }</style>
 
 <main class="detail-page">
@@ -219,7 +215,7 @@
 
                 <div class="field"><div class="label">Množství (měsíc)</div><div class="value">@Safe(Model.MonthlyQuantity?.ToString())</div></div>
                 <div class="field"><div class="label">MFI</div><div class="value">@Safe(Model.Mfi)</div></div>
-
+                
                 <div class="field full"><div class="label">Poznámky</div><div class="value">@Safe(Model.Notes)</div></div>
 
                 <div class="field"><div class="label">Vytvořeno</div><div class="value">@SafeDate(Model.CreatedAt)</div></div>
