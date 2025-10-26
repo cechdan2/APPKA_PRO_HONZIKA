@@ -6,24 +6,14 @@ using PhotoApp.Models;
 using QRCoder;
 
 namespace PhotoApp.Controllers;
+
 [Authorize]
-public class HomeController : Controller
+public class HomeController(AppDbContext context, IWebHostEnvironment env, ILogger<HomeController> logger) : Controller
 {
-    private readonly AppDbContext _context;
-    private readonly IWebHostEnvironment _env;
-    private readonly ILogger<HomeController> _logger;
-
-    public HomeController(AppDbContext context, IWebHostEnvironment env, ILogger<HomeController> logger)
-    {
-        _context = context;
-        _env = env;
-        _logger = logger;
-    }
-
     // GET: /
     public async Task<IActionResult> Index()
     {
-        var photos = await _context.Photos.OrderByDescending(p => p.CreatedAt).ToListAsync();
+        var photos = await context.Photos.OrderByDescending(p => p.CreatedAt).ToListAsync();
         return View(photos);
     }
 
@@ -47,7 +37,7 @@ public class HomeController : Controller
                 return View(record);
             }
 
-            var uploads = Path.Combine(_env.WebRootPath, "uploads");
+            var uploads = Path.Combine(env.WebRootPath ?? Path.Combine(AppContext.BaseDirectory, "wwwroot"), "uploads");
             if (!Directory.Exists(uploads))
                 Directory.CreateDirectory(uploads);
 
@@ -56,7 +46,7 @@ public class HomeController : Controller
                            + Path.GetExtension(imageFile.FileName);
             var path = Path.Combine(uploads, fileName);
 
-            using (var stream = new FileStream(path, FileMode.Create))
+            await using (var stream = new FileStream(path, FileMode.Create))
             {
                 await imageFile.CopyToAsync(stream);
             }
@@ -67,11 +57,12 @@ public class HomeController : Controller
         record.CreatedAt = DateTime.UtcNow;
         record.UpdatedAt = DateTime.UtcNow;
 
-        _context.Add(record);
-        await _context.SaveChangesAsync();
+        context.Add(record);
+        await context.SaveChangesAsync();
 
         return RedirectToAction(nameof(Index));
     }
+
     // Replace the existing ClearPhotos method with this implementation
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -80,15 +71,15 @@ public class HomeController : Controller
         try
         {
             // 1) Smažeme všechny záznamy v DB (tabulka Photos)
-            var allPhotos = await _context.Photos.ToListAsync();
-            if (allPhotos.Any())
+            var allPhotos = await context.Photos.ToListAsync();
+            if (allPhotos.Count > 0)
             {
-                _context.Photos.RemoveRange(allPhotos);
-                await _context.SaveChangesAsync();
+                context.Photos.RemoveRange(allPhotos);
+                await context.SaveChangesAsync();
             }
 
             // 2) Smažeme všechny soubory a podsložky v wwwroot/uploads
-            var uploadsDir = Path.Combine(_env.WebRootPath ?? Path.Combine(AppContext.BaseDirectory, "wwwroot"), "uploads");
+            var uploadsDir = Path.Combine(env.WebRootPath ?? Path.Combine(AppContext.BaseDirectory, "wwwroot"), "uploads");
             try
             {
                 if (Directory.Exists(uploadsDir))
@@ -102,19 +93,16 @@ public class HomeController : Controller
             }
             catch (Exception ex)
             {
-                try { _logger?.LogWarning(ex, "Failed to clear/create uploads directory"); } catch { }
+                logger.LogWarning(ex, "Failed to clear/create uploads directory");
                 TempData["Error"] = "Složku uploads se nepodaøilo plnì vyèistit: " + ex.Message;
                 return RedirectToAction("Index", "Photos");
             }
-
-            // ? 3) NEmažeme databázový soubor, pouze tabulku Photos (už vyøešeno výše)
-            // Žádné File.Delete() zde není potøeba.
 
             TempData["Message"] = "Všechny záznamy z tabulky Photos byly odstranìny a složka uploads byla vyprázdnìna.";
         }
         catch (Exception ex)
         {
-            try { _logger?.LogError(ex, "Error in ClearPhotos"); } catch { }
+            logger.LogError(ex, "Error in ClearPhotos");
             TempData["Error"] = "Chyba pøi mazání: " + ex.Message;
         }
 
@@ -125,7 +113,7 @@ public class HomeController : Controller
     // GET: /Home/Details/{id}  (pøihlášený uživatel, zobrazí QR kód odkazující na veøejný detail)
     public async Task<IActionResult> Details(int id)
     {
-        var photo = await _context.Photos.FindAsync(id);
+        var photo = await context.Photos.FindAsync(id);
         if (photo == null)
             return NotFound();
 
@@ -144,7 +132,7 @@ public class HomeController : Controller
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Generování QR SVG selhalo pro url {Url}", publicUrl);
+                logger.LogError(ex, "Generování QR SVG selhalo pro url {Url}", publicUrl);
                 ViewBag.PublicQrSvg = null;
                 ViewBag.PublicQrError = ex.Message;
             }
@@ -162,19 +150,15 @@ public class HomeController : Controller
     [AllowAnonymous]
     public async Task<IActionResult> DetailsAnonymous(int id)
     {
-        var photo = await _context.Photos.FindAsync(id);
+        var photo = await context.Photos.FindAsync(id);
         if (photo == null)
             return NotFound();
 
-        // pùvodnì
-        // return View("DetailsAnonymous", photo);
-
-        // nahraïte tímto:
         return View("~/Views/Photos/DetailsAnonymous.cshtml", photo);
     }
 
     // Pomocná metoda: vytvoøí SVG string QR kódu (SvgQRCode) - cross-platform
-    private string GenerateQrSvg(string payload)
+    private static string GenerateQrSvg(string payload)
     {
         if (string.IsNullOrWhiteSpace(payload))
             throw new ArgumentNullException(nameof(payload));

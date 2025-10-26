@@ -16,7 +16,7 @@ if (string.IsNullOrWhiteSpace(connectionString))
 {
     var dbPath = builder.Configuration["SqliteDbPath"] ?? "photoapp.db";
     // if user provided just a file name, convert to Data Source=... format
-    if (!dbPath.Trim().Contains("="))
+    if (!dbPath.Trim().Contains('=')) // use char overload for single-character search
         connectionString = $"Data Source={dbPath}";
     else
         connectionString = dbPath;

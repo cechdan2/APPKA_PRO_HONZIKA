@@ -2,9 +2,16 @@
 @model PhotoApp.ViewModels.PhotosIndexViewModel
 @{
     ViewData["Title"] = "ODPO s.r.o. – Katalog vzorků plastů";
-    string Safe(string s) => string.IsNullOrWhiteSpace(s) ? "-" : s;
-    string SafeDate(DateTime dt) => (dt == DateTime.MinValue) ? "-" : dt.ToLocalTime().ToString("g");
-    Func<PhotoApp.Models.PhotoRecord, string> ImageSrc = item =>
+
+    // Accept nullable strings to avoid CS8600/CS8625 warnings and use the null-forgiving operator
+    // when we know the value is not null (after the check).
+    string Safe(string? s) => string.IsNullOrWhiteSpace(s) ? "-" : s!;
+
+    // Accept nullable DateTime so we can safely pass both DateTime and DateTime? without warnings.
+    string SafeDate(DateTime? dt) => (!dt.HasValue || dt.Value == DateTime.MinValue) ? "-" : dt.Value.ToLocalTime().ToString("g");
+
+    // ImageSrc can legitimately return null when no image paths are present, so the return type is nullable.
+    Func<PhotoApp.Models.PhotoRecord, string?> ImageSrc = item =>
         !string.IsNullOrWhiteSpace(item.ImagePath) ? Url.Content(item.ImagePath) :
         !string.IsNullOrWhiteSpace(item.PhotoPath) ? Url.Content(item.PhotoPath) : null;
 }
@@ -263,29 +270,23 @@
     }
 
     @@media (max-width: 767px) {
-        #tableView
+        #tableView {
+            display: none;
+        }
 
-    {
-        display: none;
+        #cardsView {
+            display: grid;
+        }
     }
 
-    #cardsView {
-        display: grid;
-    }
-
-    }
-    
     @@media (min-width: 768px) {
-        #tableView
+        #tableView {
+            display: block;
+        }
 
-    {
-        display: block;
-    }
-
-    #cardsView {
-        display: none;
-    }
-
+        #cardsView {
+            display: none;
+        }
     }
 
     /* make very long tables horizontally scrollable on narrow screens */
@@ -365,13 +366,10 @@
 
         /* aby se tlačítka správně škálovala na malých obrazovkách */
         @@media (max-width:600px) {
-            .action-btn
-
-        {
-            padding: 6px 10px;
-            font-size: 13px;
-        }
-
+            .action-btn {
+                padding: 6px 10px;
+                font-size: 13px;
+            }
         }</style>
 
     <div class="container header-inner" style="display:flex;align-items:center;">
@@ -391,7 +389,7 @@
             <a href="@Url.Action("Database", "Admin")" class="action-btn brand">Obnovit ze zálohy</a>
 
 
-       
+
 
             @if (User?.Identity?.IsAuthenticated ?? false)
             {
@@ -579,19 +577,17 @@
         }
 
         @@media (max-width: 520px) {
-            .user-pill
-
-        {
-            display: none;
-        }
-        /* na malé obrazovce skryjeme plné jméno */
+            .user-pill {
+                display: none;
+            }
+            /* na malé obrazovce skryjeme plné jméno */
         }</style>
 
     <div class="header-right" aria-live="polite">
         @if (User?.Identity?.IsAuthenticated ?? false)
         {
             <div class="user-row" role="group" aria-label="Uživatelské menu">
-                
+
                 <div class="user-pill" title="@username">@username</div>
 
                 <form asp-controller="Account" asp-action="Logout" method="post" class="logout-form" aria-label="Odhlásit">
@@ -630,7 +626,7 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach (var item in Model.Items)
+                @foreach (var item in Model?.Items ?? Enumerable.Empty<PhotoApp.Models.PhotoRecord>())
                 {
                     var src = ImageSrc(item);
                     <tr>
@@ -705,7 +701,7 @@
 
     <!-- Mobile: cards with full list of fields -->
     <div id="cardsView" class="cards-container" aria-label="Katalog vzorků - kartičky">
-        @foreach (var item in Model.Items)
+        @foreach (var item in Model?.Items ?? Enumerable.Empty<PhotoApp.Models.PhotoRecord>())
         {
             var src = ImageSrc(item);
             <div class="card-item" role="group" aria-labelledby="title-@item.Id">
@@ -721,10 +717,11 @@
 
                     <div class="card-body">
                         <div id="title-@item.Id" class="card-title">@Safe(item.Name)</div>
-                        <div class="card-sub">@Safe(item.Type) @if (!string.IsNullOrEmpty(item.Code)){
-                        <span>- @item.Code</span>
-                    }
-</div>
+                        <div class="card-sub">
+                            @Safe(item.Type) @if (!string.IsNullOrEmpty(item.Code)){
+                            <span>- @item.Code</span>
+                        }
+                    </div>
                     <div class="muted">@SafeDate(item.UpdatedAt)</div>
                     <div class="card-props" style="margin-top:8px;">
                         @if (!string.IsNullOrEmpty(item.Supplier))

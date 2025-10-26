@@ -13,7 +13,12 @@
 
     // Jednoduché Safe: vrací původní text (Razor ho automaticky HTML-encoduje při výpisu),
     // takže diakritika (háčky/čárky) se zobrazí správně.
-    string Safe(string s) => string.IsNullOrWhiteSpace(s) ? "-" : s;
+    string Safe(string? s)
+    {
+        if (string.IsNullOrWhiteSpace(s))
+            return "-";
+        return s;
+    }
     string SafeDate(DateTime dt) => (dt == DateTime.MinValue) ? "-" : dt.ToLocalTime().ToString("g");
 }
 <style>
