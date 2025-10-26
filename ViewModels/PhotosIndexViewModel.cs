@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using PhotoApp.Models;
+﻿using PhotoApp.Models;
 
 namespace PhotoApp.ViewModels
 {

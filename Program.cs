@@ -1,17 +1,10 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using OfficeOpenXml;
 using PhotoApp.Data;
 using PhotoApp.Models;
 using PhotoApp.Services;
-using System;
-using System.IO;
-using System.IO.Compression;
-using System.Linq;
-using System.Reflection;
-using static System.Net.WebRequestMethods;
 
 var builder = WebApplication.CreateBuilder(args);
 ExcelPackage.License.SetNonCommercialPersonal("My Name");

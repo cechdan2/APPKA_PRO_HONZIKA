@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using PhotoApp.Data;
 using PhotoApp.Models;
-using Microsoft.EntityFrameworkCore;
 
 namespace PhotoApp.Services
 {

@@ -1,11 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OfficeOpenXml;
 using PhotoApp.Data;
 using PhotoApp.Models;
-using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 
