@@ -9,204 +9,118 @@
 }
 
 <style>
-    :root {
-        --brand: #16a34a;
-        --brand-dark: #166534;
-        --border: #dbe7d9;
-        --bg: #f4fbf4;
-        --text: #0b1f0b;
-        --white: #fff;
-        --pad: 12px;
-        --gap: 8px;
-        --radius: 12px;
-    }
+:root {
+    --brand: #16a34a;
+    --brand-dark: #166534;
+    --border: #dbe7d9;
+    --bg: #f4fbf4;
+    --text: #0b1f0b;
+    --white: #fff;
+    --pad: 16px;
+    --gap: 12px;
+    --radius: 16px;
+}
 
-    * {
-        box-sizing: border-box;
-    }
+* { box-sizing: border-box; }
 
-    body {
-        margin: 0;
-        font-family: system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;
-        color: var(--text);
-        background: var(--bg);
-    }
+body {
+    margin: 0;
+    font-family: system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;
+    color: var(--text);
+    background: var(--bg);
+}
 
-    .container {
-        max-width: 1100px;
-        margin: 0 auto;
-        padding: var(--pad);
-    }
+.container { max-width: 1100px; margin: 0 auto; padding: var(--pad); }
 
-    /* --- Styly pro hlavičku a akce --- */
-    .header-inner {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        flex-wrap: wrap; /* Umožní zalamování na menších obrazovkách */
-    }
+/* Header */
+.header-inner { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; }
+.brand img { height: 40px; width: auto; }
+h1 { margin: 0; font-size: 22px; font-weight: 700; color: var(--brand-dark); }
 
-    .brand {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        text-decoration: none;
-        color: inherit;
-    }
+.header-actions { display: flex; gap: var(--gap); align-items: center; flex-wrap: wrap; width: 100%; margin-top: var(--gap); }
+.user-actions { margin-left: auto; display: flex; align-items: center; gap: var(--gap); }
 
-        .brand img {
-            height: 36px;
-            width: auto;
-        }
+.action-btn, .action-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 18px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--white);
+    color: inherit;
+    text-decoration: none;
+    font-size: 18px;
+    cursor: pointer;
+    white-space: nowrap;
+}
 
-    h1 {
-        margin: 0;
-        font-size: 18px;
-        font-weight: 700;
-        color: var(--brand-dark);
-    }
+.action-btn.primary { background: var(--brand); color: #fff; border-color: var(--brand-dark); }
+.action-btn.destructive { background: #ef4444; color: #fff; border-color: #b91c1c; }
 
-    .header-actions {
-        display: flex;
-        gap: var(--gap);
-        align-items: center;
-        flex-wrap: wrap;
-        width: 100%; /* Na mobilu zabere celou šířku */
-        margin-top: var(--gap);
-    }
+.inline-form { margin: 0; display: inline-block; }
 
-    .user-actions {
-        margin-left: auto;
-        display: flex;
-        align-items: center;
-        gap: var(--gap);
-    }
+/* Filters */
+.toolbar { background: #fff; border: 1px solid var(--border); border-radius: var(--radius); padding: var(--pad); margin-bottom: var(--pad); }
+.filter-form { display: flex; flex-direction: column; gap: var(--gap); }
+.filter-form input, .filter-form select { width: 100%; padding: 14px; border-radius: 10px; border: 1px solid var(--border); font-size: 18px; }
 
-    .action-btn, .action-pill {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 8px 12px;
-        border-radius: 8px;
-        border: 1px solid var(--border);
-        background: var(--white);
-        color: inherit;
-        text-decoration: none;
-        font-size: 14px;
-        cursor: pointer;
-        white-space: nowrap;
-    }
+/* Cards */
+.card-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--gap);
+    max-height: calc(100vh - 270px);
+    overflow-y: auto;
+    padding-bottom: 16px;
+}
 
-        .action-btn.primary {
-            background: var(--brand);
-            color: #fff;
-            border-color: var(--brand-dark);
-        }
+.item-card {
+    background: #fff;
+    border-radius: 20px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    font-size: 20px;
+}
 
-        .action-btn.destructive {
-            background: #ef4444;
-            color: #fff;
-            border-color: #b91c1c;
-        }
+.thumb {
+    width: 400px;
+    height: 400px;
+    object-fit: cover;
+    border-radius: 16px;
+}
 
-    .inline-form {
-        margin: 0;
-        display: inline-block;
-    }
+.card-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    text-align: center;
+}
 
-    /* --- Styly pro filtry --- */
-    .toolbar {
-        background: #fff;
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        padding: var(--pad);
-        margin-bottom: var(--pad);
-    }
+.card-info div { line-height: 1.4; }
+.card-info strong { font-weight: 600; }
 
-    .filter-form {
-        display: flex;
-        flex-direction: column; /* Filtry pod sebou na mobilu */
-        gap: var(--gap);
-    }
+.card-footer {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    margin-top: 12px;
+}
 
-        .filter-form input, .filter-form select {
-            width: 100%;
-            padding: 8px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-        }
+.footer { text-align: center; font-size: 16px; padding: 20px 0; color: #3b6b3b; }
 
-    /* --- Styly pro karty (mobilní zobrazení) --- */
-    .card-list {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: var(--pad);
-    }
-
-    .item-card {
-        background: #fff;
-        border-radius: 12px;
-        padding: 12px;
-        border: 1px solid #dbe7d9;
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-    }
-
-    .item-card-header {
-        display: flex;
-        gap: 12px;
-        align-items: center;
-    }
-
-    .thumb {
-        width: 80px;
-        height: 80px;
-        object-fit: cover;
-        border-radius: 8px;
-        flex-shrink: 0;
-    }
-
-    .card-info {
-        flex: 1;
-        font-size: 14px;
-    }
-
-        .card-info div {
-            margin-bottom: 4px;
-        }
-
-        .card-info strong {
-            font-weight: 600;
-        }
-
-    .footer {
-        text-align: center;
-        font-size: 12px;
-        padding: 20px 0;
-        color: #3b6b3b;
-    }
-
-    /* --- Media queries pro desktop --- */
-    @@media (min-width: 768px) {
-        .header-actions {
-            width: auto;
-            margin-left: auto;
-        }
-
-        .filter-form {
-            flex-direction: row;
-            flex-wrap: wrap;
-        }
-
-            .filter-form input, .filter-form select {
-                width: auto;
-            }
-
-                .filter-form input[type="search"] {
-                    flex: 1;
-                }
-    }
+@@media (min-width: 768px) {
+    .header-actions { width: auto; margin-left: auto; }
+    .filter-form { flex-direction: row; flex-wrap: wrap; }
+    .filter-form input, .filter-form select { width: auto; }
+    .filter-form input[type="search"] { flex: 1; }
+}
 </style>
 
 <header class="container">
@@ -248,39 +162,22 @@
     <div class="toolbar">
         <form method="get" class="filter-form">
             <input type="search" name="search" placeholder="Hledat…" value="@(Model?.Search ?? "")" />
-
             <select name="supplier">
                 <option value="">Všichni dodavatelé</option>
-                @foreach (var s in Model?.Suppliers ?? Enumerable.Empty<string>())
-                {
-                    <option value="@s" selected="@(s == Model?.Supplier)">@s</option>
-                }
+                @foreach (var s in Model?.Suppliers ?? Enumerable.Empty<string>()) { <option value="@s" selected="@(s == Model?.Supplier)">@s</option> }
             </select>
-
             <select name="material">
                 <option value="">Všechny materiály</option>
-                @foreach (var m in Model?.Materials ?? Enumerable.Empty<string>())
-                {
-                    <option value="@m" selected="@(m == Model?.Material)">@m</option>
-                }
+                @foreach (var m in Model?.Materials ?? Enumerable.Empty<string>()) { <option value="@m" selected="@(m == Model?.Material)">@m</option> }
             </select>
-
             <select name="color">
                 <option value="">Všechny barvy</option>
-                @foreach (var c in Model?.Colors ?? Enumerable.Empty<string>())
-                {
-                    <option value="@c" selected="@(c == Model?.Color)">@c</option>
-                }
+                @foreach (var c in Model?.Colors ?? Enumerable.Empty<string>()) { <option value="@c" selected="@(c == Model?.Color)">@c</option> }
             </select>
-
             <select name="position">
                 <option value="">Všechny pozice</option>
-                @foreach (var p in Model?.Positions ?? Enumerable.Empty<string>())
-                {
-                    <option value="@p" selected="@(p == Model?.Position)">@p</option>
-                }
+                @foreach (var p in Model?.Positions ?? Enumerable.Empty<string>()) { <option value="@p" selected="@(p == Model?.Position)">@p</option> }
             </select>
-
             <button type="submit" class="action-btn">Filtrovat</button>
             <a href="@Url.Action("Index", "Photos")" class="action-btn">Smazat filtry</a>
         </form>
@@ -291,28 +188,27 @@
         {
             var src = ImageSrc(item);
             <div class="item-card">
-                <div class="item-card-header">
-                    @if (!string.IsNullOrEmpty(src))
-                    {
-                        <a href="@Url.Action("Details", new { id = item.Id })">
-                            <img src="@src" alt="@item.Name" class="thumb" />
-                        </a>
-                    }
-                    <div class="card-info">
-                        <div><strong>Materiál:</strong> @Safe(item.Material)</div>
-                        <div><strong>Dodavatel:</strong> @Safe(item.Supplier)</div>
-                        <div><strong>Barva:</strong> @Safe(item.Color)</div>
-                        <div><strong>Pozice:</strong> @Safe(item.Position)</div>
-                    </div>
+                @if (!string.IsNullOrEmpty(src))
+                {
+                    <a href="@Url.Action("Details", new { id = item.Id })">
+                        <img src="@src" alt="@item.Name" class="thumb" />
+                    </a>
+                }
+                <div class="card-info">
+                    <div><strong>Materiál:</strong> @Safe(item.Material)</div>
+                    <div><strong>Dodavatel:</strong> @Safe(item.Supplier)</div>
+                    <div><strong>Barva:</strong> @Safe(item.Color)</div>
+                    <div><strong>Pozice:</strong> @Safe(item.Position)</div>
                 </div>
-                <div class="card-footer" style="margin-top: auto; padding-top: 8px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end;">
-                    <a href="@Url.Action("Edit", new { id = item.Id })" class="action-btn">Upravit</a>
-                    <a href="@Url.Action("Details", new { id = item.Id })" class="action-btn primary">Detail</a>
-                </div>
+                <div class="card-footer">
+    <a href="@Url.Action("Edit", new { id = item.Id })" class="action-btn">Upravit</a>
+    <a href="@Url.Action("Details", new { id = item.Id })" class="action-btn primary">Detail</a>
+    <a href="@Url.Action("Delete", new { id = item.Id })" class="action-btn destructive"
+       onclick="return confirm('Opravdu chcete tento vzorek smazat?');">Smazat</a>
+</div>
             </div>
         }
     </div>
 
     <div class="footer">Data se ukládají v databázi. Pro zálohu exportujte data ze serveru.</div>
 </main>
-```
