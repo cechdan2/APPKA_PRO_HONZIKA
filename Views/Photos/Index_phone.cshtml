@@ -3,11 +3,11 @@
 @{
     ViewData["Title"] = "ODPO s.r.o. – Katalog vzorků plastů";
     string Safe(string s) => string.IsNullOrWhiteSpace(s) ? "-" : s;
-    string SafeDate(DateTime dt) => (dt == DateTime.MinValue) ? "-" : dt.ToLocalTime().ToString("g");
     Func<PhotoApp.Models.PhotoRecord, string> ImageSrc = item =>
         !string.IsNullOrWhiteSpace(item.ImagePath) ? Url.Content(item.ImagePath) :
         !string.IsNullOrWhiteSpace(item.PhotoPath) ? Url.Content(item.PhotoPath) : null;
 }
+
 <style>
     :root {
         --brand: #16a34a;
@@ -22,155 +22,85 @@
     }
 
     * {
-        box-sizing: border-box
+        box-sizing: border-box;
     }
 
     body {
         margin: 0;
         font-family: system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;
         color: var(--text);
-        background: var(--bg)
-    }
-
-    header {
-        position: sticky;
-        top: 0;
-        z-index: 5;
-        background: #fff;
-        border-bottom: 1px solid var(--border)
+        background: var(--bg);
     }
 
     .container {
         max-width: 1100px;
         margin: 0 auto;
-        padding: 14px var(--pad)
+        padding: var(--pad);
+    }
+
+    /* --- Styly pro hlavičku a akce --- */
+    .header-inner {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap; /* Umožní zalamování na menších obrazovkách */
     }
 
     .brand {
         display: flex;
         align-items: center;
-        gap: 12px
+        gap: 12px;
+        text-decoration: none;
+        color: inherit;
     }
 
         .brand img {
             height: 36px;
-            width: auto
+            width: auto;
         }
 
     h1 {
         margin: 0;
         font-size: 18px;
         font-weight: 700;
-        color: var(--brand-dark)
+        color: var(--brand-dark);
     }
 
-    button {
-        padding: 8px 12px;
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        background: var(--white);
-        cursor: pointer
-    }
-
-        button.primary {
-            background: var(--brand);
-            color: #fff;
-            border-color: var(--brand-dark)
-        }
-
-        button.destructive {
-            background: #ef4444;
-            color: #fff;
-            border-color: #b91c1c
-        }
-
-        button.pill {
-            border-radius: 999px
-        }
-
-    .right {
-        margin-left: auto;
+    .header-actions {
         display: flex;
         gap: var(--gap);
+        align-items: center;
         flex-wrap: wrap;
-        align-items: center
+        width: 100%; /* Na mobilu zabere celou šířku */
+        margin-top: var(--gap);
     }
 
-    .card {
-        background: #fff;
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        padding: var(--pad)
+    .user-actions {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: var(--gap);
     }
 
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 13px
-    }
-
-    th, td {
-        padding: 8px;
-        border-bottom: 1px solid var(--border);
-        vertical-align: top;
-        text-align: left
-    }
-
-    th {
-        color: var(--brand-dark);
-        font-weight: 700;
-        font-size: 12px
-    }
-
-    tr:hover {
-        background: #f0fbf3
-    }
-
-    .thumb {
-        width: 56px;
-        height: 56px;
-        object-fit: cover;
-        border-radius: 8px;
-        border: 1px solid var(--border)
-    }
-
-    .img-link {
-        text-decoration: none;
-        color: inherit;
-        cursor: pointer
-    }
-
-    .muted {
-        color: #666;
-        font-size: 12px
-    }
-
-    .footer {
-        text-align: center;
-        color: #3b6b3b;
-        font-size: 12px;
-        padding: 20px 0
-    }
-
-    /* jednotný vzhled "tlačítek" (odkazů i buttonů) */
-    .action-btn {
+    .action-btn, .action-pill {
         display: inline-flex;
         align-items: center;
         justify-content: center;
         padding: 8px 12px;
         border-radius: 8px;
-        border: 1px solid #dbe7d9;
-        background: #fff;
+        border: 1px solid var(--border);
+        background: var(--white);
         color: inherit;
         text-decoration: none;
         font-size: 14px;
         cursor: pointer;
+        white-space: nowrap;
     }
 
         .action-btn.primary {
-            background: #16a34a;
+            background: var(--brand);
             color: #fff;
-            border-color: #166534;
+            border-color: var(--brand-dark);
         }
 
         .action-btn.destructive {
@@ -184,405 +114,205 @@
         display: inline-block;
     }
 
-    .header-inner {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 12px 0;
+    /* --- Styly pro filtry --- */
+    .toolbar {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: var(--pad);
+        margin-bottom: var(--pad);
     }
 
-    .header-actions {
-        margin-left: auto;
+    .filter-form {
         display: flex;
-        gap: 8px;
-        align-items: center;
-        flex-wrap: wrap;
+        flex-direction: column; /* Filtry pod sebou na mobilu */
+        gap: var(--gap);
     }
 
-    .header-right {
-        margin-top: 8px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
+        .filter-form input, .filter-form select {
+            width: 100%;
+            padding: 8px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+    /* --- Styly pro karty (mobilní zobrazení) --- */
+    .card-list {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: var(--pad);
     }
 
-    .user-row {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        background: transparent;
-    }
-
-    .user-avatar {
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        background: linear-gradient(135deg,#e6f9e9,#d1f0d6);
-        color: #166534;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        font-size: 14px;
+    .item-card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 12px;
         border: 1px solid #dbe7d9;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .item-card-header {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+    }
+
+    .thumb {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 8px;
         flex-shrink: 0;
     }
 
-    .user-pill {
-        font-size: 13px;
-        color: #133a13;
-        background: #fbfff9;
-        border: 1px solid #e6f1e6;
-        padding: 6px 10px;
-        border-radius: 999px;
-        white-space: nowrap;
+    .card-info {
+        flex: 1;
+        font-size: 14px;
     }
 
-    .action-pill {
-        padding: 8px 12px;
-        border-radius: 8px;
-        border: 1px solid #dbe7d9;
-        background: #fff;
-        color: inherit;
-        cursor: pointer;
-        font-size: 13px;
-    }
-
-        .action-pill:hover {
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        .card-info div {
+            margin-bottom: 4px;
         }
 
-    .logout-form {
-        margin: 0;
-        display: inline-block;
-    }
-
-    /* make very long tables horizontally scrollable on narrow screens */
-    .table-wrap {
-        overflow-x: auto;
-    }
-
-    /* Mobil: tabulka se rozpadne na „kartičky“ bez duplikace markup */
-    @@media (max-width: 767px) {
-        /* Přestyluj tabulku do karet */
-        #tableView {
-            display: block;
+        .card-info strong {
+            font-weight: 600;
         }
-            /* důležité: .table-wrap je na stejném elementu jako #tableView */
-            #tableView.table-wrap {
-                overflow: visible;
+
+    .footer {
+        text-align: center;
+        font-size: 12px;
+        padding: 20px 0;
+        color: #3b6b3b;
+    }
+
+    /* --- Media queries pro desktop --- */
+    @@media (min-width: 768px) {
+        .header-actions {
+            width: auto;
+            margin-left: auto;
+        }
+
+        .filter-form {
+            flex-direction: row;
+            flex-wrap: wrap;
+        }
+
+            .filter-form input, .filter-form select {
+                width: auto;
             }
 
-            #tableView table {
-                border: 0;
-                width: 100%;
-            }
-
-            #tableView thead {
-                display: none;
-            }
-
-            #tableView tbody,
-            #tableView tr,
-            #tableView td {
-                display: block;
-                width: 100%;
-            }
-
-            #tableView tr {
-                margin-bottom: 12px;
-                background: #fff;
-                border: 1px solid var(--border);
-                border-radius: 12px;
-                padding: 12px;
-            }
-
-            #tableView td {
-                border: 0;
-                border-bottom: 1px solid var(--border);
-                padding: 8px 0;
-            }
-
-                #tableView td:last-child {
-                    border-bottom: 0;
+                .filter-form input[type="search"] {
+                    flex: 1;
                 }
-                /* Popisky polí z atributu data-label */
-                #tableView td[data-label]::before {
-                    content: attr(data-label);
-                    display: block;
-                    font-weight: 700;
-                    color: #333;
-                    margin-bottom: 4px;
-                    font-size: 12px;
-                }
-        /* Na mobilu nedává smysl tlačítko pro skrývání sloupce tabulky */
-        #toggleSupplierBtn {
-            display: none;
-        }
-        /* Větší náhled na mobilu */
-        .thumb {
-            width: 80px;
-            height: 80px;
-            margin-bottom: 8px;
-        }
-        /* Kompaktnější tlačítka v headeru */
-        .action-btn {
-            padding: 6px 10px;
-            font-size: 13px;
-        }
-        /* Skryj dlouhé jméno uživatele */
-        .user-pill {
-            display: none;
-        }
-    }
-
-    @@media (max-width:600px) {
-        .action-btn {
-            padding: 6px 10px;
-            font-size: 13px;
-        }
     }
 </style>
 
-<header>
-    <div class="container header-inner">
+<header class="container">
+    <div class="header-inner">
         <div class="brand">
             <img src="/logo.png" alt="ODPO logo" />
-            <div>
-                <h1>ODPO s.r.o. – Katalog vzorků plastů</h1>
-            </div>
+            <h1>Katalog vzorků</h1>
         </div>
-
+        <div class="user-actions">
+            @if (User?.Identity?.IsAuthenticated ?? false)
+            {
+                <form asp-controller="Account" asp-action="Logout" method="post" class="inline-form">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="action-pill" title="Odhlásit se">Odhlásit</button>
+                </form>
+            }
+            else
+            {
+                <a asp-controller="Account" asp-action="Login" class="action-pill">Přihlásit</a>
+            }
+        </div>
         <div class="header-actions">
-            <a href="@Url.Action("Create", "Photos")" class="action-btn primary">+ Nový vzorek</a>
-            @* <a href="@Url.Action("ExportZip", "Photos")" class="action-btn">Export ZIP (CSV + obrázky)</a> *@
-            @* <a href="@Url.Action("ExportExcelWithImages", "Photos")" class="action-btn">Export XLSX s obrázky</a> *@
-            <a href="@Url.Action("GetBackup", "DatabaseBackup")" class="action-btn">Stáhnout zálohu databáze</a>
-            <a href="@Url.Action("Import", "Photos")" class="action-btn">Import z Excelu</a>
-            <a href="@Url.Action("Database", "Admin")" class="action-btn brand">Obnovit ze zálohy</a>
-
+            <a href="@Url.Action("Create", "Photos")" class="action-btn primary">+ Nový</a>
+            <a href="@Url.Action("GetBackup", "DatabaseBackup")" class="action-btn">Záloha</a>
+            <a href="@Url.Action("Import", "Photos")" class="action-btn">Import</a>
             @if (User?.Identity?.IsAuthenticated ?? false)
             {
                 <form asp-controller="Home" asp-action="ClearPhotos" method="post" class="inline-form"
-                      onsubmit="return confirm('Opravdu vymazat všechny fotky? Tuto akci nelze vrátit zpět.');">
+                      onsubmit="return confirm('Opravdu vymazat všechny fotky?');">
                     @Html.AntiForgeryToken()
-                    <button type="submit" class="action-btn destructive">Vymazat všechny vzorky</button>
+                    <button type="submit" class="action-btn destructive">Vymazat vše</button>
                 </form>
             }
-
-            <!-- skrytý formulář pro obnovení (Restore) -->
-            <form id="restoreForm" asp-controller="Backup" asp-action="Restore" method="post" enctype="multipart/form-data" style="display:none; margin-top:8px;">
-                @Html.AntiForgeryToken()
-                <label for="backupZip" style="margin-right:8px;">Vyberte ZIP (database + uploads):</label>
-                <input type="file" id="backupZip" name="backupZip" accept=".zip" required />
-                <button type="submit" class="action-btn primary" onclick="return confirm('Obnova přepíše existující databázi a soubory uploads. Pokračovat?');">Nahrát a obnovit</button>
-                <button type="button" id="cancelRestore" class="action-btn" style="margin-left:8px;">Zrušit</button>
-            </form>
         </div>
-
-        <script>
-            (function(){
-                var showBtn = document.getElementById('showRestoreBtn');
-                var restoreForm = document.getElementById('restoreForm');
-                var cancelBtn = document.getElementById('cancelRestore');
-
-                if (showBtn && restoreForm) {
-                    showBtn.addEventListener('click', function() {
-                        if (restoreForm.style.display === 'none' || restoreForm.style.display === '') {
-                            restoreForm.style.display = 'block';
-                            showBtn.textContent = 'Skrýt obnovení';
-                        } else {
-                            restoreForm.style.display = 'none';
-                            showBtn.textContent = 'Obnovit ze zálohy';
-                        }
-                    });
-                }
-
-                if (cancelBtn && restoreForm && showBtn) {
-                    cancelBtn.addEventListener('click', function() {
-                        restoreForm.style.display = 'none';
-                        showBtn.textContent = 'Obnovit ze zálohy';
-                    });
-                }
-            })();
-        </script>
     </div>
 </header>
 
 <main class="container">
-    <div class="toolbar card" style="display:flex;gap:8px;flex-wrap:wrap">
-        <form method="get" style="flex:1;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-            <input type="search" name="search" placeholder="Hledat…" value="@(Model?.Search ?? "")" style="flex:1;min-width:180px;padding:7px;border-radius:7px;border:1px solid #dbe7d9;" />
+    <div class="toolbar">
+        <form method="get" class="filter-form">
+            <input type="search" name="search" placeholder="Hledat…" value="@(Model?.Search ?? "")" />
 
-            <select name="supplier" style="min-width:140px;padding:7px;border-radius:7px;border:1px solid #dbe7d9;">
+            <select name="supplier">
                 <option value="">Všichni dodavatelé</option>
                 @foreach (var s in Model?.Suppliers ?? Enumerable.Empty<string>())
                 {
-                    <option value="@s" selected="@(s == Model?.Supplier ? "selected" : null)">@s</option>
+                    <option value="@s" selected="@(s == Model?.Supplier)">@s</option>
                 }
             </select>
 
-            <select name="material" style="min-width:140px;padding:7px;border-radius:7px;border:1px solid #dbe7d9;">
+            <select name="material">
                 <option value="">Všechny materiály</option>
                 @foreach (var m in Model?.Materials ?? Enumerable.Empty<string>())
                 {
-                    <option value="@m" selected="@(m == Model?.Material ? "selected" : null)">@m</option>
+                    <option value="@m" selected="@(m == Model?.Material)">@m</option>
                 }
             </select>
 
-            <select name="type" style="min-width:140px;padding:7px;border-radius:7px;border:1px solid #dbe7d9;">
-                <option value="">Všechny typy</option>
-                @foreach (var t in Model?.Types ?? Enumerable.Empty<string>())
-                {
-                    <option value="@t" selected="@(t == Model?.Type ? "selected" : null)">@t</option>
-                }
-            </select>
-
-            <select name="color" style="min-width:120px;padding:7px;border-radius:7px;border:1px solid #dbe7d9;">
+            <select name="color">
                 <option value="">Všechny barvy</option>
                 @foreach (var c in Model?.Colors ?? Enumerable.Empty<string>())
                 {
-                    <option value="@c" selected="@(c == Model?.Color ? "selected" : null)">@c</option>
+                    <option value="@c" selected="@(c == Model?.Color)">@c</option>
                 }
             </select>
 
-            <select name="name" style="min-width:160px;padding:7px;border-radius:7px;border:1px solid #dbe7d9;">
-                <option value="">Všechna jména</option>
-                @foreach (var n in Model?.Names ?? Enumerable.Empty<string>())
-                {
-                    <option value="@n" selected="@(n == Model?.Name ? "selected" : null)">@n</option>
-                }
-            </select>
-
-            <select name="position" style="min-width:140px;padding:7px;border-radius:7px;border:1px solid #dbe7d9;">
+            <select name="position">
                 <option value="">Všechny pozice</option>
                 @foreach (var p in Model?.Positions ?? Enumerable.Empty<string>())
                 {
-                    <option value="@p" selected="@(p == Model?.Position ? "selected" : null)">@p</option>
-                }
-            </select>
-
-            <select name="filler" style="min-width:140px;padding:7px;border-radius:7px;border:1px solid #dbe7d9;">
-                <option value="">Všechna plniva</option>
-                @foreach (var f in Model?.Fillers ?? Enumerable.Empty<string>())
-                {
-                    <option value="@f" selected="@(f == Model?.Filler ? "selected" : null)">@f</option>
+                    <option value="@p" selected="@(p == Model?.Position)">@p</option>
                 }
             </select>
 
             <button type="submit" class="action-btn">Filtrovat</button>
-            <a href="@Url.Action("Index", "Photos")" class="action-btn" style="margin-left:6px;">Smazat filtry</a>
+            <a href="@Url.Action("Index", "Photos")" class="action-btn">Smazat filtry</a>
         </form>
     </div>
 
-    <div class="header-right" aria-live="polite">
-        @if (User?.Identity?.IsAuthenticated ?? false)
+    <div class="card-list">
+        @foreach (var item in Model.Items)
         {
-            <div class="user-row" role="group" aria-label="Uživatelské menu">
-                <div class="user-pill" title="@User?.Identity?.Name">@User?.Identity?.Name</div>
-                <form asp-controller="Account" asp-action="Logout" method="post" class="logout-form" aria-label="Odhlásit">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="action-pill" title="Odhlásit se">Odhlásit</button>
-                </form>
-            </div>
-        }
-        else
-        {
-            <div class="user-row">
-                <a asp-controller="Account" asp-action="Login" class="action-pill" title="Přihlásit">Přihlásit</a>
+            var src = ImageSrc(item);
+            <div class="item-card">
+                <div class="item-card-header">
+                    @if (!string.IsNullOrEmpty(src))
+                    {
+                        <a href="@Url.Action("Details", new { id = item.Id })">
+                            <img src="@src" alt="@item.Name" class="thumb" />
+                        </a>
+                    }
+                    <div class="card-info">
+                        <div><strong>Materiál:</strong> @Safe(item.Material)</div>
+                        <div><strong>Dodavatel:</strong> @Safe(item.Supplier)</div>
+                        <div><strong>Barva:</strong> @Safe(item.Color)</div>
+                        <div><strong>Pozice:</strong> @Safe(item.Position)</div>
+                    </div>
+                </div>
+                <div class="card-footer" style="margin-top: auto; padding-top: 8px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end;">
+                    <a href="@Url.Action("Edit", new { id = item.Id })" class="action-btn">Upravit</a>
+                    <a href="@Url.Action("Details", new { id = item.Id })" class="action-btn primary">Detail</a>
+                </div>
             </div>
         }
     </div>
-
-    <!-- Jediný DOM: Desktop i Mobil z jedné tabulky -->
-    <div id="tableView" class="card table-wrap" aria-label="Katalog vzorků - tabulka">
-        <table>
-            <thead>
-                <tr>
-                    <th>Foto</th>
-                    <th>Pozice</th>
-                    <th>Id</th>
-                    <th>Dodavatel</th>
-                    <th>Původní název</th>
-                    <th>Materiál</th>
-                    <th>Forma</th>
-                    <th>Plnivo</th>
-                    <th>Barva</th>
-                    <th>Popis</th>
-                    <th>Množství (měsíc)</th>
-                    <th>MFI</th>
-                    <th>Poznámky</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var item in Model.Items)
-                {
-                    var src = ImageSrc(item);
-                    <tr>
-                        <td data-label="Foto">
-                            @if (!string.IsNullOrEmpty(src))
-                            {
-                                <a href="@Url.Action("Details", new { id = item.Id })" class="img-link">
-                                    <img class="thumb" src="@src" alt="@item.Name" />
-                                </a>
-                            }
-                            else
-                            {
-                                <span>—</span>
-                            }
-                        </td>
-                        <td data-label="Pozice">@Safe(item.Position)</td>
-                        <td data-label="Id">@Safe(item.ExternalId)</td>
-                        <td data-label="Dodavatel">@Safe(item.Supplier)</td>
-                        <td data-label="Původní název" style="white-space:pre-wrap;">@Safe(item.OriginalName)</td>
-                        <td data-label="Materiál">@Safe(item.Material)</td>
-                        <td data-label="Forma">@Safe(item.Form)</td>
-                        <td data-label="Plnivo">@Safe(item.Filler)</td>
-                        <td data-label="Barva">@Safe(item.Color)</td>
-                        <td data-label="Popis" style="white-space:pre-wrap; max-width:280px;">@(string.IsNullOrWhiteSpace(item.Description) ? "-" : item.Description)</td>
-                        <td data-label="Množství (měsíc)">@Safe(item.MonthlyQuantity)</td>
-                        <td data-label="MFI">@Safe(item.Mfi)</td>
-                        <td data-label="Poznámky" style="white-space:pre-wrap; max-width:280px;">@(string.IsNullOrWhiteSpace(item.Notes) ? "-" : item.Notes)</td>
-                        <td data-label="Akce">
-                            <a href="@Url.Action("Details", new { id = item.Id })" title="Detail">🔍</a>
-                            <a href="@Url.Action("Edit", new { id = item.Id })" title="Upravit">✏️</a>
-                            <a href="@Url.Action("Delete", new { id = item.Id })" class="destructive" title="Smazat">🗑</a>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-
-    <button id="toggleSupplierBtn">Schovat dodavatele</button>
-
-    <script>
-        // Přepínání viditelnosti sloupce "Dodavatel" v tabulce (desktop)
-        document.getElementById("toggleSupplierBtn")?.addEventListener("click", function() {
-            const table = document.querySelector("#tableView table");
-            if (!table) return;
-            const supplierIndex = Array.from(table.querySelectorAll("th"))
-                .findIndex(th => th.textContent.trim() === "Dodavatel");
-            if (supplierIndex === -1) return;
-
-            const rows = table.querySelectorAll("tr");
-            let hidden = false;
-
-            if (rows[0].querySelectorAll("th, td")[supplierIndex].style.display === "none") {
-                hidden = true;
-            }
-
-            rows.forEach(row => {
-                const cell = row.querySelectorAll("th, td")[supplierIndex];
-                if (cell) {
-                    cell.style.display = hidden ? "" : "none";
-                }
-            });
-
-            this.textContent = hidden ? "Schovat dodavatele" : "Zobrazit dodavatele";
-        });
-    </script>
 
     <div class="footer">Data se ukládají v databázi. Pro zálohu exportujte data ze serveru.</div>
 </main>
+```

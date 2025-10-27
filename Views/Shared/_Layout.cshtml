@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@ViewData["Title"] - ODPO s.r.o.</title>
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    
+    <!-- PWA Tags -->
+    <link rel="manifest" href="~/manifest.json">
+    <meta name="theme-color" content="#16a34a">
+    <link rel="apple-touch-icon" href="/logo.png">
+
     <style>
         :root {
             --brand: #16a34a;
@@ -108,5 +114,15 @@
         @RenderBody()
     </main>
     @RenderSection("Scripts", required: false)
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(reg => console.log('✅ Service worker registered', reg))
+                    .catch(err => console.warn('⚠️ Service worker registration failed', err));
+            });
+        }
+    </script>
 </body>
 </html>

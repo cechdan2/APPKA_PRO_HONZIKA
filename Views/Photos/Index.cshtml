@@ -280,6 +280,8 @@
             <a href="@Url.Action("Import", "Photos")" class="action-btn">Import z Excelu</a>
             <a href="@Url.Action("Database", "Admin")" class="action-btn brand">Obnovit ze zálohy</a>
 
+
+
             @if (User?.Identity?.IsAuthenticated ?? false)
             {
                 <form asp-controller="Home" asp-action="ClearPhotos" method="post" class="inline-form"

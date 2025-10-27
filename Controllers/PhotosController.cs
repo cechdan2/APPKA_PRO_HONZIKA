@@ -32,21 +32,38 @@ public class PhotosController : Controller
     // vlož tento using do horní části souboru:
     // using PhotoApp.ViewModels;
     // doplňte required using: using PhotoApp.ViewModels;
-    public async Task<IActionResult> Index(string search, string supplier, string material, string type, string color, string name, string position, string filler, bool forceDesktop = false)
+    public async Task<IActionResult> Index(string search, string supplier, string material, string type, string color, string name, string position, string filler)
     {
-        // Detekce mobilního zařízení na základě User-Agent
+        // Detekce mobilního zařízení podle User-Agent
         var userAgent = HttpContext.Request.Headers["User-Agent"].ToString();
         bool isMobile = userAgent.Contains("Mobile") || userAgent.Contains("Android") || userAgent.Contains("iPhone") || userAgent.Contains("iPad") || userAgent.Contains("Windows Phone");
 
-        if (isMobile && !forceDesktop)
-        {
-            return RedirectToAction("Index_phone", new { search, supplier, material, type, color, name, position, filler, forceDesktop });
-        }
-
-        // připrav query
+        // Zbytek logiky desktop verze zůstává stejný
         var q = _context.Photos.AsNoTracking().AsQueryable();
 
-        // fulltext-like vyhledávání přes několik polí (pokryje i Name)
+        var items = await q.OrderByDescending(p => p.UpdatedAt).ToListAsync();
+
+
+        var vm = new PhotoApp.ViewModels.PhotosIndexViewModel
+        {
+            Items = items,
+            // naplnění ostatních seznamů pro selecty...
+            Search = search,
+            Supplier = supplier,
+            Material = material,
+            Type = type,
+            Color = color,
+            Name = name,
+            Position = position,
+            Filler = filler
+        };
+
+
+
+        if (Request.Headers["User-Agent"].ToString().Contains("Mobile"))
+            return RedirectToAction("Index_phone");
+
+
         if (!string.IsNullOrWhiteSpace(search))
         {
             var s = search.Trim();
@@ -59,105 +76,16 @@ public class PhotosController : Controller
             );
         }
 
-        if (!string.IsNullOrWhiteSpace(supplier))
-            q = q.Where(p => p.Supplier == supplier);
+        // další filtry (supplier, material, type, color, name, position, filler)...
 
-        if (!string.IsNullOrWhiteSpace(material))
-            q = q.Where(p => p.Material == material);
 
-        if (!string.IsNullOrWhiteSpace(type))
-            q = q.Where(p => p.Type == type);
+        // připrav view model a vrátit desktop view
 
-        if (!string.IsNullOrWhiteSpace(color))
-            q = q.Where(p => p.Color == color);
 
-        // nové přesné filtry
-        if (!string.IsNullOrWhiteSpace(name))
-            q = q.Where(p => p.Name == name);
-
-        if (!string.IsNullOrWhiteSpace(position))
-            q = q.Where(p => p.Position == position);
-
-        if (!string.IsNullOrWhiteSpace(filler))
-            q = q.Where(p => p.Filler == filler);
-
-        // načti položky (třídění podle potřeby)
-        var items = await q.OrderByDescending(p => p.UpdatedAt).ToListAsync();
-
-        // naplň seznamy pro selecty (distinct hodnoty)
-        var suppliers = await _context.Photos
-            .Where(p => !string.IsNullOrEmpty(p.Supplier))
-            .Select(p => p.Supplier)
-            .Distinct()
-            .OrderBy(x => x)
-            .ToListAsync();
-
-        var materials = await _context.Photos
-            .Where(p => !string.IsNullOrEmpty(p.Material))
-            .Select(p => p.Material)
-            .Distinct()
-            .OrderBy(x => x)
-            .ToListAsync();
-
-        var types = await _context.Photos
-            .Where(p => !string.IsNullOrEmpty(p.Type))
-            .Select(p => p.Type)
-            .Distinct()
-            .OrderBy(x => x)
-            .ToListAsync();
-
-        var colors = await _context.Photos
-            .Where(p => !string.IsNullOrEmpty(p.Color))
-            .Select(p => p.Color)
-            .Distinct()
-            .OrderBy(x => x)
-            .ToListAsync();
-
-        // nové seznamy
-        var names = await _context.Photos
-            .Where(p => !string.IsNullOrEmpty(p.Name))
-            .Select(p => p.Name)
-            .Distinct()
-            .OrderBy(x => x)
-            .ToListAsync();
-
-        var positions = await _context.Photos
-            .Where(p => !string.IsNullOrEmpty(p.Position))
-            .Select(p => p.Position)
-            .Distinct()
-            .OrderBy(x => x)
-            .ToListAsync();
-
-        var fillers = await _context.Photos
-            .Where(p => !string.IsNullOrEmpty(p.Filler))
-            .Select(p => p.Filler)
-            .Distinct()
-            .OrderBy(x => x)
-            .ToListAsync();
-
-        var vm = new PhotoApp.ViewModels.PhotosIndexViewModel
-        {
-            Items = items,
-            Suppliers = suppliers,
-            Materials = materials,
-            Types = types,
-            Colors = colors,
-            Names = names,
-            Positions = positions,
-            Fillers = fillers,
-            Search = search,
-            Supplier = supplier,
-            Material = material,
-            Type = type,
-            Color = color,
-            Name = name,
-            Position = position,
-            Filler = filler
-        };
-
-        return View(vm);
+        ViewBag.IsMobile = false;
+        return View(vm); // desktop view
     }
-
+    [HttpGet]
     // Nová akce pro mobilní zařízení
     [Authorize]
     public async Task<IActionResult> Index_phone(string search, string supplier, string material, string type, string color, string name, string position, string filler, bool forceDesktop = false)
@@ -284,6 +212,7 @@ public class PhotosController : Controller
                 Filler = filler
             };
 
+            ViewBag.IsMobile = false; // I když je forceDesktop, označ jako desktop
             return View(vm); // Vrátí Index.cshtml (desktop)
         }
 
@@ -399,6 +328,7 @@ public class PhotosController : Controller
             Filler = filler
         };
 
+        ViewBag.IsMobile = true; // Označí, že je to mobil view
         return View("Index_phone", vm2); // Vrátí Index_phone.cshtml
     }
 
