@@ -19,9 +19,10 @@ namespace PhotoApp.Controllers
         private readonly IServiceProvider _services;
         private readonly IHostApplicationLifetime _appLifetime;
         private readonly IWebHostEnvironment _env;
-        private static readonly SemaphoreSlim _opLock = new SemaphoreSlim(1, 1);
+        private static readonly SemaphoreSlim _opLock = new SemaphoreSlim(1, 1); 
+        
+        private const long MaxUploadBytes = 10L * 1024 * 1024 * 1024; // 10 737 418 240 bytes
 
-        private const long MaxUploadBytes = 200L * 1024 * 1024;
 
         public DatabaseBackupController(IConfiguration config,
                                         ILogger<DatabaseBackupController> logger,
@@ -197,14 +198,63 @@ namespace PhotoApp.Controllers
                 }
 
                 // 2) extract
+                // náhrada bloku pro uložení + rozbalení v RestoreBackup
+                // Po uložení souboru do zipPath:
+                await using (var fs = System.IO.File.Create(zipPath))
+                {
+                    await backupZip.CopyToAsync(fs);
+                }
+
+                // DIAGNOSTIKA: log velikosti a prvních pár bytů (magic)
+                long savedSize = new FileInfo(zipPath).Length;
+                _logger.LogInformation("Uploaded backup saved to {ZipPath}, size={Size} bytes", zipPath, savedSize);
+
+                // check for minimal ZIP signature (PK\x03\x04)
+                byte[] header = new byte[4];
+                using (var fh = System.IO.File.OpenRead(zipPath))
+                {
+                    await fh.ReadAsync(header, 0, header.Length);
+                }
+                bool looksLikeZip = header.Length == 4 && header[0] == (byte)'P' && header[1] == (byte)'K' && (header[2] == 3 || header[2] == 5 || header[2] == 7);
+                if (!looksLikeZip)
+                {
+                    _logger.LogWarning("Uploaded file does not start with ZIP signature. Header bytes: {Header}", BitConverter.ToString(header));
+                    return BadRequest("Uploaded file does not appear to be a ZIP archive (invalid signature).");
+                }
+
+                // Pokusíme se otevřít ZIP virtuálně a vypsat seznam položek - to odhalí poškození
                 try
                 {
-                    ZipFile.ExtractToDirectory(zipPath, tmpFolder, true);
+                    using (var zipStream = System.IO.File.OpenRead(zipPath))
+                    using (var zip = new System.IO.Compression.ZipArchive(zipStream, System.IO.Compression.ZipArchiveMode.Read, leaveOpen: false))
+                    {
+                        _logger.LogInformation("ZIP contains {Count} entries. First entries: {Names}", zip.Entries.Count, string.Join(", ", zip.Entries.Take(10).Select(e => e.FullName)));
+                        // verify that database.db exists at root
+                        var dbEntry = zip.GetEntry("database.db");
+                        if (dbEntry == null)
+                        {
+                            _logger.LogWarning("ZIP does not contain database.db at root. Entries: {Entries}", string.Join(", ", zip.Entries.Select(e => e.FullName)));
+                            return BadRequest("ZIP does not contain database.db at the root.");
+                        }
+                        // optionally verify uploads entries exist - not mandatory
+                    }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Failed to extract uploaded ZIP");
-                    return BadRequest("Uploaded file is not a valid ZIP or extraction failed.");
+                    _logger.LogError(ex, "Failed to read ZIP archive after saving upload");
+                    // vrať konkrétní chybovou zprávu (bez odhalení citlivých cest)
+                    return BadRequest("Uploaded file is not a valid ZIP archive or it is corrupted: " + ex.Message);
+                }
+
+                // Pokud prošlo, extrahujme bezpečně
+                try
+                {
+                    ZipFile.ExtractToDirectory(zipPath, tmpFolder, overwriteFiles: true);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to extract uploaded ZIP using ZipFile.ExtractToDirectory");
+                    return BadRequest("Extraction failed: " + ex.Message);
                 }
 
                 // 3) find database.db inside extracted folder

@@ -7,6 +7,7 @@
     Func<PhotoApp.Models.PhotoRecord, string> ImageSrc = item =>
         !string.IsNullOrWhiteSpace(item.ImagePath) ? Url.Content(item.ImagePath) :
         !string.IsNullOrWhiteSpace(item.PhotoPath) ? Url.Content(item.PhotoPath) : null;
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 }
 <style>
     :root {
@@ -262,6 +263,11 @@
         overflow-x: auto;
     }
 </style>
+<head>
+    <link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#16a34a">
+</head>
+
 
 <header>
     <div class="container header-inner">
@@ -330,7 +336,63 @@
     </div>
 </header>
 
+
+
+
+
 <main class="container">
+        <div class="header-right" aria-live="polite">
+        @if (User?.Identity?.IsAuthenticated ?? false)
+        {
+            <div class="user-row" role="group" aria-label="Uživatelské menu">
+                <div class="user-pill" title="@User?.Identity?.Name">@User?.Identity?.Name</div>
+                <form asp-controller="Account" asp-action="Logout" method="post" class="logout-form" aria-label="Odhlásit">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="action-pill" title="Odhlásit se">Odhlásit</button>
+                </form>
+            </div>
+        }
+        else
+        {
+            <div class="user-row">
+                <a asp-controller="Account" asp-action="Login" class="action-pill" title="Přihlásit">Přihlásit</a>
+            </div>
+        }
+    </div>
+
+
+    <div class="toolbar card" style="margin-top:10px; display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
+    <span>Zobrazit sloupce:</span>
+    <label><input type="checkbox" class="col-toggle" data-col="0" checked> Foto</label>
+    <label><input type="checkbox" class="col-toggle" data-col="1" checked> Pozice</label>
+    <label><input type="checkbox" class="col-toggle" data-col="2" checked> Id</label>
+    <label><input type="checkbox" class="col-toggle" data-col="3" checked> Dodavatel</label>
+    <label><input type="checkbox" class="col-toggle" data-col="4" checked> Původní název</label>
+    <label><input type="checkbox" class="col-toggle" data-col="5" checked> Materiál</label>
+    <label><input type="checkbox" class="col-toggle" data-col="6" checked> Forma</label>
+    <label><input type="checkbox" class="col-toggle" data-col="7" checked> Plnivo</label>
+    <label><input type="checkbox" class="col-toggle" data-col="8" checked> Barva</label>
+    <label><input type="checkbox" class="col-toggle" data-col="9" checked> Popis</label>
+    <label><input type="checkbox" class="col-toggle" data-col="10" checked> Množství (měsíc)</label>
+    <label><input type="checkbox" class="col-toggle" data-col="11" checked> MFI</label>
+    <label><input type="checkbox" class="col-toggle" data-col="12" checked> Poznámky</label>
+</div>
+<script>
+document.querySelectorAll(".col-toggle").forEach(cb => {
+    cb.addEventListener("change", function() {
+        const colIndex = parseInt(this.getAttribute("data-col"));
+        const table = document.querySelector("#tableView table");
+        if (!table) return;
+        const rows = table.querySelectorAll("tr");
+        rows.forEach(row => {
+            const cell = row.querySelectorAll("th, td")[colIndex];
+            if (cell) {
+                cell.style.display = this.checked ? "" : "none";
+            }
+        });
+    });
+});
+</script>
     <div class="toolbar card" style="display:flex;gap:8px;flex-wrap:wrap">
         <form method="get" style="flex:1;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
             <input type="search" name="search" placeholder="Hledat…" value="@(Model?.Search ?? "")" style="flex:1;min-width:180px;padding:7px;border-radius:7px;border:1px solid #dbe7d9;" />
@@ -396,24 +458,7 @@
         </form>
     </div>
 
-    <div class="header-right" aria-live="polite">
-        @if (User?.Identity?.IsAuthenticated ?? false)
-        {
-            <div class="user-row" role="group" aria-label="Uživatelské menu">
-                <div class="user-pill" title="@User?.Identity?.Name">@User?.Identity?.Name</div>
-                <form asp-controller="Account" asp-action="Logout" method="post" class="logout-form" aria-label="Odhlásit">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="action-pill" title="Odhlásit se">Odhlásit</button>
-                </form>
-            </div>
-        }
-        else
-        {
-            <div class="user-row">
-                <a asp-controller="Account" asp-action="Login" class="action-pill" title="Přihlásit">Přihlásit</a>
-            </div>
-        }
-    </div>
+
 
     <!-- Jediný DOM: Desktop i Mobil z jedné tabulky -->
     <div id="tableView" class="card table-wrap" aria-label="Katalog vzorků - tabulka">
@@ -476,34 +521,19 @@
         </table>
     </div>
 
-    <button id="toggleSupplierBtn">Schovat dodavatele</button>
+
 
     <script>
-        // Přepínání viditelnosti sloupce "Dodavatel" v tabulce (desktop)
-        document.getElementById("toggleSupplierBtn")?.addEventListener("click", function() {
-            const table = document.querySelector("#tableView table");
-            if (!table) return;
-            const supplierIndex = Array.from(table.querySelectorAll("th"))
-                .findIndex(th => th.textContent.trim() === "Dodavatel");
-            if (supplierIndex === -1) return;
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+            .then(reg => console.log('Service Worker registered', reg))
+            .catch(err => console.log('Service Worker registration failed', err));
+    });
+}
+</script>
 
-            const rows = table.querySelectorAll("tr");
-            let hidden = false;
 
-            if (rows[0].querySelectorAll("th, td")[supplierIndex].style.display === "none") {
-                hidden = true;
-            }
-
-            rows.forEach(row => {
-                const cell = row.querySelectorAll("th, td")[supplierIndex];
-                if (cell) {
-                    cell.style.display = hidden ? "" : "none";
-                }
-            });
-
-            this.textContent = hidden ? "Schovat dodavatele" : "Zobrazit dodavatele";
-        });
-    </script>
 
     <div class="footer">Data se ukládají v databázi. Pro zálohu exportujte data ze serveru.</div>
 </main>

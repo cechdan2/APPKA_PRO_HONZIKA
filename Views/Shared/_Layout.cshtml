@@ -6,9 +6,30 @@
     <title>@ViewData["Title"] - ODPO s.r.o.</title>
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     
-    <!-- PWA Tags -->
+    <!-- Standardní PWA Manifest -->
     <link rel="manifest" href="~/manifest.json">
+    
+    <!-- Barva lišty prohlížeče (pro Android) -->
     <meta name="theme-color" content="#16a34a">
+    
+    <!-- =============== -->
+    <!-- iOS specifické tagy -->
+    <!-- =============== -->
+    
+    <!-- Povolí běh v samostatném okně ("standalone" režim) -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    
+    <!-- Název aplikace pod ikonou na ploše -->
+    <meta name="apple-mobile-web-app-title" content="ODPO Katalog">
+    
+    <!-- Styl stavového řádku (čas, baterie, signál) -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <!-- Ikona pro plochu iOS -->
+    <link rel="apple-touch-icon" href="/logo.png">
+    
+    @RenderSection("Styles", required: false)
+
     <link rel="apple-touch-icon" href="/logo.png">
 
     <style>
@@ -115,14 +136,16 @@
     </main>
     @RenderSection("Scripts", required: false)
 
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/service-worker.js')
-                    .then(reg => console.log('✅ Service worker registered', reg))
-                    .catch(err => console.warn('⚠️ Service worker registration failed', err));
-            });
-        }
-    </script>
+<script>
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+            .then(reg => console.log('Service Worker registered', reg))
+            .catch(err => console.log('Service Worker registration failed', err));
+    });
+}
+</script>
+
+
 </body>
 </html>

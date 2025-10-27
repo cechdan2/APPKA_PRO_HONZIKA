@@ -32,22 +32,58 @@ public class PhotosController : Controller
     // vlož tento using do horní části souboru:
     // using PhotoApp.ViewModels;
     // doplňte required using: using PhotoApp.ViewModels;
+    // Tuto metodu vlož do PhotosController.cs místo té původní
     public async Task<IActionResult> Index(string search, string supplier, string material, string type, string color, string name, string position, string filler)
     {
-        // Detekce mobilního zařízení podle User-Agent
-        var userAgent = HttpContext.Request.Headers["User-Agent"].ToString();
-        bool isMobile = userAgent.Contains("Mobile") || userAgent.Contains("Android") || userAgent.Contains("iPhone") || userAgent.Contains("iPad") || userAgent.Contains("Windows Phone");
+        // Detekce mobilu, pokud ano, přesměruj na mobilní verzi
+        if (Request.Headers["User-Agent"].ToString().Contains("Mobile"))
+        {
+            // Předáme filtry do mobilní akce
+            return RedirectToAction("Index_phone", new { search, supplier, material, type, color, name, position, filler });
+        }
 
-        // Zbytek logiky desktop verze zůstává stejný
-        var q = _context.Photos.AsNoTracking().AsQueryable();
+        // --- OPRAVENÁ LOGIKA PRO DESKTOP ---
 
+        // 1. Začneme se základním dotazem
+        IQueryable<PhotoRecord> q = _context.Photos.AsNoTracking().AsQueryable();
+
+        // 2. Postupně aplikujeme všechny filtry
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.Trim();
+            q = q.Where(p =>
+                (p.Name != null && EF.Functions.Like(p.Name, $"%{s}%")) ||
+                (p.OriginalName != null && EF.Functions.Like(p.OriginalName, $"%{s}%")) ||
+                (p.Description != null && EF.Functions.Like(p.Description, $"%{s}%")) ||
+                (p.Notes != null && EF.Functions.Like(p.Notes, $"%{s}%")) ||
+                (p.Code != null && EF.Functions.Like(p.Code, $"%{s}%"))
+            );
+        }
+        if (!string.IsNullOrWhiteSpace(supplier)) q = q.Where(p => p.Supplier == supplier);
+        if (!string.IsNullOrWhiteSpace(material)) q = q.Where(p => p.Material == material);
+        if (!string.IsNullOrWhiteSpace(type)) q = q.Where(p => p.Type == type);
+        if (!string.IsNullOrWhiteSpace(color)) q = q.Where(p => p.Color == color);
+        if (!string.IsNullOrWhiteSpace(name)) q = q.Where(p => p.Name == name);
+        if (!string.IsNullOrWhiteSpace(position)) q = q.Where(p => p.Position == position);
+        if (!string.IsNullOrWhiteSpace(filler)) q = q.Where(p => p.Filler == filler);
+
+        // 3. AŽ TEĎ načteme vyfiltrovaná data z databáze
         var items = await q.OrderByDescending(p => p.UpdatedAt).ToListAsync();
 
-
+        // 4. Připravíme ViewModel
         var vm = new PhotoApp.ViewModels.PhotosIndexViewModel
         {
             Items = items,
-            // naplnění ostatních seznamů pro selecty...
+            // Naplníme seznamy pro <select> boxy
+            Suppliers = await _context.Photos.Where(p => p.Supplier != null).Select(p => p.Supplier).Distinct().OrderBy(x => x).ToListAsync(),
+            Materials = await _context.Photos.Where(p => p.Material != null).Select(p => p.Material).Distinct().OrderBy(x => x).ToListAsync(),
+            Types = await _context.Photos.Where(p => p.Type != null).Select(p => p.Type).Distinct().OrderBy(x => x).ToListAsync(),
+            Colors = await _context.Photos.Where(p => p.Color != null).Select(p => p.Color).Distinct().OrderBy(x => x).ToListAsync(),
+            Names = await _context.Photos.Where(p => p.Name != null).Select(p => p.Name).Distinct().OrderBy(x => x).ToListAsync(),
+            Positions = await _context.Photos.Where(p => p.Position != null).Select(p => p.Position).Distinct().OrderBy(x => x).ToListAsync(),
+            Fillers = await _context.Photos.Where(p => p.Filler != null).Select(p => p.Filler).Distinct().OrderBy(x => x).ToListAsync(),
+
+            // Uložíme aktuálně zvolené hodnoty filtrů
             Search = search,
             Supplier = supplier,
             Material = material,
@@ -58,33 +94,10 @@ public class PhotosController : Controller
             Filler = filler
         };
 
-
-
-        if (Request.Headers["User-Agent"].ToString().Contains("Mobile"))
-            return RedirectToAction("Index_phone");
-
-
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            var s = search.Trim();
-            q = q.Where(p =>
-                EF.Functions.Like(p.Name, $"%{s}%") ||
-                EF.Functions.Like(p.OriginalName, $"%{s}%") ||
-                EF.Functions.Like(p.Description, $"%{s}%") ||
-                EF.Functions.Like(p.Notes, $"%{s}%") ||
-                EF.Functions.Like(p.Code, $"%{s}%")
-            );
-        }
-
-        // další filtry (supplier, material, type, color, name, position, filler)...
-
-
-        // připrav view model a vrátit desktop view
-
-
         ViewBag.IsMobile = false;
-        return View(vm); // desktop view
+        return View(vm); // Vrátí desktopové zobrazení
     }
+
     [HttpGet]
     // Nová akce pro mobilní zařízení
     [Authorize]

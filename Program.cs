@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using OfficeOpenXml;
@@ -31,6 +32,29 @@ var connectionStringa = $"Data Source={dbFile}";
 // DbContext
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(connectionStringa));
+
+
+
+builder.WebHost.ConfigureKestrel(options =>
+{
+    // Nastavení maximální velikosti tìla požadavku (napø. 10 GB)
+    options.Limits.MaxRequestBodySize = 10L * 1024 * 1024 * 1024;
+});
+
+// ----------------------------
+// Nastavení limitu pro multipart/form-data
+// ----------------------------
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 10L * 1024 * 1024 * 1024; // 10 GB
+});
+
+
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(30);
+    options.Limits.RequestHeadersTimeout = TimeSpan.FromMinutes(30);
+});
 
 // (volitelnì) expose the db path to configuration for other controllers
 builder.Configuration["SqliteDbPath"] = dbFile;
