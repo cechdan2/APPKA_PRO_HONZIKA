@@ -391,28 +391,27 @@ public class PhotosController : Controller
         // Explicitní mapování — vytvoříme novou entitu a přiřadíme všechna relevantní pole
         var photo = new PhotoRecord
         {
-            // Zkopíruj všechna pole, která máš ve view
             Position = photoModel.Position,
             ExternalId = photoModel.ExternalId,
-            OriginalName = photoModel.OriginalName,
+            OriginalName = photoModel.OriginalName ?? "",
             Material = photoModel.Material,
             Form = photoModel.Form,
             Filler = photoModel.Filler,
             Color = photoModel.Color,
             Mfi = photoModel.Mfi,
             MonthlyQuantity = photoModel.MonthlyQuantity,
-            Name = photoModel.Name,
-            Code = photoModel.Code,
-            Type = photoModel.Type,
-            Supplier = photoModel.Supplier,
-            Description = photoModel.Description,
-            Notes = photoModel.Notes,
-            // cesta k fotce z uploadu (pokud byla)
+            Name = string.IsNullOrWhiteSpace(photoModel.Name) ? "Unnamed" : photoModel.Name,
+            Code = photoModel.Code ?? "",
+            Type = photoModel.Type ?? "",
+            Supplier = photoModel.Supplier ?? "",
+            Description = photoModel.Description ?? "",
+            Notes = photoModel.Notes ?? "",
             PhotoPath = savedPath ?? photoModel.PhotoPath,
-            ImagePath = photoModel.ImagePath, // pokud používáš ImagePath
+            ImagePath = photoModel.ImagePath ?? "",
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
+
 
         _context.Add(photo);
         await _context.SaveChangesAsync();

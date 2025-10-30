@@ -12,19 +12,19 @@ namespace PhotoApp.Models
         public string? ExternalId { get; set; }
 
         // Dodavatel (v Excelu sloupec "Dodavatel")
-        public string Supplier { get; set; } = "";
+        public string? Supplier { get; set; } = "";
 
         // Excel: "Pùvodní název" (originální název / výrobce)
-        public string OriginalName { get; set; } = "";
+        public string? OriginalName { get; set; } = "";
 
         // Uživatelské/altersní pole Name (vaše pùvodní)
-        public string Name { get; set; } = "";
+        public string? Name { get; set; } = "";
 
         // Kód / interní kód
         public string Code { get; set; } = "";
 
         // Typ / kategorie
-        public string Type { get; set; } = "";
+        public string? Type { get; set; } = "";
 
         // Excel: "material"
         public string? Material { get; set; }
@@ -48,7 +48,7 @@ namespace PhotoApp.Models
         public string? Mfi { get; set; }
 
         // Poznámka (Excel: "Poznámka")
-        public string Notes { get; set; } = "";
+        public string? Notes { get; set; } = "";
 
         // Obrázek / fotka (Excel: "Fotka") — lze uložit jen název souboru nebo relativní cesta
         public string? PhotoFileName { get; set; }
