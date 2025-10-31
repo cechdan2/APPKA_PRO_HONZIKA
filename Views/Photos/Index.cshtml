@@ -7,9 +7,33 @@
     Func<PhotoApp.Models.PhotoRecord, string> ImageSrc = item =>
         !string.IsNullOrWhiteSpace(item.ImagePath) ? Url.Content(item.ImagePath) :
         !string.IsNullOrWhiteSpace(item.PhotoPath) ? Url.Content(item.PhotoPath) : null;
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 }
 <style>
+    /* velký preview obrázek */
+    .zoom-preview {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        width: 400px; /* velikost velkého obrázku */
+        height: 400px;
+        transform: translate(-50%, -50%);
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+        border: 1px solid #dbe7d9;
+        border-radius: 8px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+        z-index: 9999;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+
+        .zoom-preview.show {
+            opacity: 1;
+        }
+
     :root {
         --brand: #16a34a;
         --brand-dark: #166534;
@@ -265,16 +289,19 @@
 </style>
 <head>
     <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#16a34a">
+    <meta name="theme-color" content="#16a34a">
 </head>
 
 
 <header>
-    <div class="container header-inner">
-        <div class="brand">
-            <img src="/logo.png" alt="ODPO logo" />
+    <div class="container" style="display:flex;align-items:center;gap:12px">
+        <div class="page-header" style="display:flex;align-items:center;gap:12px">
+            <a asp-controller="Photos" asp-action="Index" style="display:inline-block;">
+                <img src="@Url.Content("~/logo.png")" alt="ODPO logo" style="height:48px;width:auto;display:block;" />
+            </a>
             <div>
-                <h1>ODPO s.r.o. – Katalog vzorků plastů</h1>
+                <h1 style="margin:0;font-size:18px;color:var(--brand);">Detail vzorku</h1>
+                <div class="muted" style="font-size:13px;">ODPO s.r.o. – Katalog vzorků plastů</div>
             </div>
         </div>
 
@@ -341,7 +368,7 @@
 
 
 <main class="container">
-        <div class="header-right" aria-live="polite">
+    <div class="header-right" aria-live="polite">
         @if (User?.Identity?.IsAuthenticated ?? false)
         {
             <div class="user-row" role="group" aria-label="Uživatelské menu">
@@ -362,37 +389,37 @@
 
 
     <div class="toolbar card" style="margin-top:10px; display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
-    <span>Zobrazit sloupce:</span>
-    <label><input type="checkbox" class="col-toggle" data-col="0" checked> Foto</label>
-    <label><input type="checkbox" class="col-toggle" data-col="1" checked> Pozice</label>
-    <label><input type="checkbox" class="col-toggle" data-col="2" checked> Id</label>
-    <label><input type="checkbox" class="col-toggle" data-col="3" checked> Dodavatel</label>
-    <label><input type="checkbox" class="col-toggle" data-col="4" checked> Původní název</label>
-    <label><input type="checkbox" class="col-toggle" data-col="5" checked> Materiál</label>
-    <label><input type="checkbox" class="col-toggle" data-col="6" checked> Forma</label>
-    <label><input type="checkbox" class="col-toggle" data-col="7" checked> Plnivo</label>
-    <label><input type="checkbox" class="col-toggle" data-col="8" checked> Barva</label>
-    <label><input type="checkbox" class="col-toggle" data-col="9" checked> Popis</label>
-    <label><input type="checkbox" class="col-toggle" data-col="10" checked> Množství (měsíc)</label>
-    <label><input type="checkbox" class="col-toggle" data-col="11" checked> MFI</label>
-    <label><input type="checkbox" class="col-toggle" data-col="12" checked> Poznámky</label>
-</div>
-<script>
-document.querySelectorAll(".col-toggle").forEach(cb => {
-    cb.addEventListener("change", function() {
-        const colIndex = parseInt(this.getAttribute("data-col"));
-        const table = document.querySelector("#tableView table");
-        if (!table) return;
-        const rows = table.querySelectorAll("tr");
-        rows.forEach(row => {
-            const cell = row.querySelectorAll("th, td")[colIndex];
-            if (cell) {
-                cell.style.display = this.checked ? "" : "none";
-            }
+        <span>Zobrazit sloupce:</span>
+        <label><input type="checkbox" class="col-toggle" data-col="0" checked> Foto</label>
+        <label><input type="checkbox" class="col-toggle" data-col="1" checked> Pozice</label>
+        <label><input type="checkbox" class="col-toggle" data-col="2" checked> Id</label>
+        <label><input type="checkbox" class="col-toggle" data-col="3" checked> Dodavatel</label>
+        <label><input type="checkbox" class="col-toggle" data-col="4" checked> Původní název</label>
+        <label><input type="checkbox" class="col-toggle" data-col="5" checked> Materiál</label>
+        <label><input type="checkbox" class="col-toggle" data-col="6" checked> Forma</label>
+        <label><input type="checkbox" class="col-toggle" data-col="7" checked> Plnivo</label>
+        <label><input type="checkbox" class="col-toggle" data-col="8" checked> Barva</label>
+        <label><input type="checkbox" class="col-toggle" data-col="9" checked> Popis</label>
+        <label><input type="checkbox" class="col-toggle" data-col="10" checked> Množství (měsíc)</label>
+        <label><input type="checkbox" class="col-toggle" data-col="11" checked> MFI</label>
+        <label><input type="checkbox" class="col-toggle" data-col="12" checked> Poznámky</label>
+    </div>
+    <script>
+        document.querySelectorAll(".col-toggle").forEach(cb => {
+            cb.addEventListener("change", function() {
+                const colIndex = parseInt(this.getAttribute("data-col"));
+                const table = document.querySelector("#tableView table");
+                if (!table) return;
+                const rows = table.querySelectorAll("tr");
+                rows.forEach(row => {
+                    const cell = row.querySelectorAll("th, td")[colIndex];
+                    if (cell) {
+                        cell.style.display = this.checked ? "" : "none";
+                    }
+                });
+            });
         });
-    });
-});
-</script>
+    </script>
     <div class="toolbar card" style="display:flex;gap:8px;flex-wrap:wrap">
         <form method="get" style="flex:1;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
             <input type="search" name="search" placeholder="Hledat…" value="@(Model?.Search ?? "")" style="flex:1;min-width:180px;padding:7px;border-radius:7px;border:1px solid #dbe7d9;" />
@@ -521,17 +548,67 @@ document.querySelectorAll(".col-toggle").forEach(cb => {
         </table>
     </div>
 
+    <script>
+        // Hover-to-zoom preview for thumbnails with a small delay
+        (function () {
+            // Use event delegation to cover dynamically-loaded rows if any
+            let timeoutMap = new WeakMap();
+            let previewElement = null;
 
+            function showPreview(imgSrc) {
+                if (!imgSrc) return;
+                // create preview element if not exists
+                previewElement = document.createElement('div');
+                previewElement.className = 'zoom-preview show';
+                previewElement.style.backgroundImage = `url('${imgSrc}')`;
+                document.body.appendChild(previewElement);
+            }
+
+            function hidePreview() {
+                if (previewElement) {
+                    previewElement.remove();
+                    previewElement = null;
+                }
+            }
+
+            document.addEventListener('mouseover', function (e) {
+                const link = e.target.closest('.img-link');
+                if (!link) return;
+                const img = link.querySelector('img');
+                if (!img) return;
+                // start delay
+                const t = setTimeout(() => showPreview(img.src), 1000);
+                timeoutMap.set(link, t);
+            });
+
+            document.addEventListener('mouseout', function (e) {
+                const link = e.target.closest('.img-link');
+                if (!link) return;
+                const t = timeoutMap.get(link);
+                if (t) {
+                    clearTimeout(t);
+                    timeoutMap.delete(link);
+                }
+                // hide immediately when mouse leaves
+                hidePreview();
+            });
+
+            // Also hide on window scroll or touch to avoid stuck preview
+            ['scroll', 'touchstart', 'resize'].forEach(evt =>
+                window.addEventListener(evt, hidePreview, { passive: true })
+            );
+        })();
+    </script>
 
     <script>
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js')
-            .then(reg => console.log('Service Worker registered', reg))
-            .catch(err => console.log('Service Worker registration failed', err));
-    });
-}
-</script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(reg => console.log('Service Worker registered', reg))
+                    .catch(err => console.log('Service Worker registration failed', err));
+            });
+        }
+    </script>
 
 
 

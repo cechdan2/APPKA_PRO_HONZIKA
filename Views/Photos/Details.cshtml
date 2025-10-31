@@ -166,13 +166,21 @@
 <main class="detail-page">
 
     @* Logo + nadpis - vložte jako první element v <main> *@
-    <div class="page-header" style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-        <img src="@Url.Content("~/logo.png")" alt="ODPO logo" style="height:48px;width:auto;display:block;" />
-        <div>
-            <h1 style="margin:0;font-size:18px;color:var(--brand);">Detail vzorku</h1>
-            <div class="muted" style="font-size:13px;">ODPO s.r.o. – Katalog vzorků plastů</div>
+    <header style="margin-bottom: 20px;">
+        <div class="container" style="display:flex;align-items:center;gap:12px">
+            <div class="page-header" style="display:flex;align-items:center;gap:12px">
+                <a asp-controller="Photos" asp-action="Index" style="display:inline-block;">
+                    <img src="@Url.Content("~/logo.png")" alt="ODPO logo" style="height:48px;width:auto;display:block;" />
+                </a>
+                <div>
+                    <h1 style="margin:0;font-size:18px;color:var(--brand);">Detail vzorku</h1>
+                    <div class="muted" style="font-size:13px;">ODPO s.r.o. – Katalog vzorků plastů</div>
+                </div>
+            </div>
         </div>
-    </div>
+    </header>
+
+
 
     <div class="card layout" role="region" aria-label="Detail vzorku">
         <aside class="media" aria-label="Obrázek a veřejný odkaz">
