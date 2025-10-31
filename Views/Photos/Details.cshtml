@@ -1,3 +1,4 @@
+@using Microsoft.AspNetCore.Html
 @model PhotoApp.Models.PhotoRecord
 @{
     ViewData["Title"] = "Detail vzorku";
@@ -11,7 +12,8 @@
     // použijeme ImagePath pokud existuje, jinak PhotoPath (kompatibilita)
     var imageSrc = !string.IsNullOrWhiteSpace(Model.ImagePath) ? Url.Content(Model.ImagePath) : (string.IsNullOrWhiteSpace(Model.PhotoPath) ? null : Url.Content(Model.PhotoPath));
 
-    string Safe(string s) => string.IsNullOrWhiteSpace(s) ? "-" : Html.Raw(Html.Encode(s)).ToString();
+    // Vrací bezpečný IHtmlContent — to zajistí správné vykreslení diakritiky bez dvojitého kódování
+    IHtmlContent Safe(string s) => string.IsNullOrWhiteSpace(s) ? new HtmlString("-") : new HtmlString(Html.Encode(s));
     string SafeDate(DateTime dt) => (dt == DateTime.MinValue) ? "-" : dt.ToLocalTime().ToString("g");
 }
 <style>

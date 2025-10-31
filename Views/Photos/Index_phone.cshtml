@@ -10,43 +10,54 @@
 }
 
 <style>
-:root {
-    --brand: #16a34a;
-    --brand-dark: #166534;
-    --border: #dbe7d9;
-    --bg: #f4fbf4;
-    --text: #0b1f0b;
-    --white: #fff;
-    --pad: 16px;
-    --gap: 12px;
-    --radius: 16px;
-}
+    :root {
+        --brand: #16a34a;
+        --brand-dark: #166534;
+        --border: #dbe7d9;
+        --bg: #f4fbf4;
+        --text: #0b1f0b;
+        --white: #fff;
+        --pad: 16px;
+        --gap: 12px;
+        --radius: 16px;
+        --bar-height: 152px; /* zvýšená výška (2x) */
+    }
 
-* { box-sizing: border-box; }
+    * {
+        box-sizing: border-box;
+    }
 
-body {
-    margin: 0;
-    font-family: system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;
-    color: var(--text);
-    background: var(--bg);
-}
+    html, body {
+        height: 100%;
+    }
 
-.container { max-width: 1100px; margin: 0 auto; padding: var(--pad); }
+    body {
+        margin: 0;
+        font-family: system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;
+        color: var(--text);
+        background: var(--bg);
+        padding-bottom: calc(var(--bar-height)); /* reserve space for bottom bar */
+    }
 
-/* Header */
+    .container {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: var(--pad);
+    }
+
+    /* Header - only logo centered */
     .header-inner {
         display: flex;
         align-items: center;
-        justify-content: center; /* zarovnání na střed */
+        justify-content: center;
         gap: 20px;
-        flex-wrap: wrap;
-        padding: 20px 0;
+        padding: 16px 0;
     }
 
     .brand {
         display: flex;
-        flex-direction: column; /* logo nad nadpis */
-        align-items: center; /* centrování obsahu */
+        flex-direction: column;
+        align-items: center;
         gap: 8px;
         text-decoration: none;
         color: inherit;
@@ -59,101 +70,271 @@ body {
 
         .brand h1 {
             margin: 0;
-            font-size: 28px;
+            font-size: 20px;
             font-weight: 700;
             color: var(--brand-dark);
         }
 
+    /* Header actions (kept minimal here) */
+    .action-btn, .action-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 14px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: var(--white);
+        color: inherit;
+        text-decoration: none;
+        font-size: 16px;
+        cursor: pointer;
+    }
 
-.header-actions {
-    display: flex;
-    gap: 16px;
-    align-items: center;
-    flex-wrap: wrap;
-    width: 100%;
-    margin-top: 12px;
-}
+        .action-btn.primary {
+            background: var(--brand);
+            color: #fff;
+            border-color: var(--brand-dark);
+        }
 
-.action-btn, .action-pill {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 14px 22px; /* větší tlačítka */
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    background: var(--white);
-    color: inherit;
-    text-decoration: none;
-    font-size: 20px; /* větší text tlačítek */
-    cursor: pointer;
-    white-space: nowrap;
-}
+        .action-btn.destructive {
+            background: #ef4444;
+            color: #fff;
+            border-color: #b91c1c;
+        }
 
-.action-btn.primary { background: var(--brand); color: #fff; border-color: var(--brand-dark); }
-.action-btn.destructive { background: #ef4444; color: #fff; border-color: #b91c1c; }
+    .inline-form {
+        margin: 0;
+        display: inline-block;
+    }
 
-.inline-form { margin: 0; display: inline-block; }
+    /* Toolbar/search area remains above the list */
+    .toolbar {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: var(--pad);
+        margin-bottom: var(--pad);
+    }
 
-/* Filters */
-.toolbar { background: #fff; border: 1px solid var(--border); border-radius: var(--radius); padding: var(--pad); margin-bottom: var(--pad); }
-.filter-form { display: flex; flex-direction: column; gap: var(--gap); }
-.filter-form input, .filter-form select { width: 100%; padding: 14px; border-radius: 10px; border: 1px solid var(--border); font-size: 18px; }
+    /* FILTER FORM
+           - Mobile-first: vertical stacked inputs, full-width buttons
+           - Desktop (>=768px): switch to horizontal layout
+        */
+    .filter-form {
+        display: flex;
+        flex-direction: column;
+        gap: var(--gap);
+        align-items: stretch;
+    }
 
-/* Cards */
-.card-list {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: var(--gap);
-    max-height: calc(100vh - 270px);
-    overflow-y: auto;
-    padding-bottom: 16px;
-}
+        .filter-form input, .filter-form select {
+            width: 100%;
+            padding: 14px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            font-size: 18px;
+            background: #fff;
+        }
 
-.item-card {
-    background: #fff;
-    border-radius: 20px;
-    padding: 16px;
-    border: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    font-size: 20px;
-}
+    /* Make filter action buttons full-width on mobile and visually distinct */
+    .filter-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+        margin-top: 4px;
+    }
 
-.thumb {
-    width: 400px;
-    height: 400px;
-    object-fit: cover;
-    border-radius: 16px;
-}
+        .filter-controls .action-btn {
+            width: 100%;
+            padding: 12px;
+            font-size: 18px;
+        }
 
-.card-info {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    text-align: center;
-}
+            .filter-controls .action-btn + .action-btn {
+                /* small visual separation between primary and secondary */
+            }
 
-.card-info div { line-height: 1.4; }
-.card-info strong { font-weight: 600; }
+    /* Cards (updated to match requested style) */
+    .card-list {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: var(--gap);
+        max-height: calc(100vh - 270px); /* match the second style */
+        overflow-y: auto;
+        padding-bottom: 16px;
+    }
 
-.card-footer {
-    display: flex;
-    gap: 16px;
-    justify-content: center;
-    margin-top: 12px;
-}
+    .item-card {
+        background: #fff;
+        border-radius: 20px;
+        padding: 16px;
+        border: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        font-size: 20px;
+    }
 
-.footer { text-align: center; font-size: 16px; padding: 20px 0; color: #3b6b3b; }
+    .thumb {
+        width: 400px;
+        height: 400px;
+        object-fit: cover;
+        border-radius: 16px;
+    }
 
-@@media (min-width: 768px) {
-    .header-actions { width: auto; margin-left: auto; }
-    .filter-form { flex-direction: row; flex-wrap: wrap; }
-    .filter-form input, .filter-form select { width: auto; }
-    .filter-form input[type="search"] { flex: 1; }
-}
+    .card-info {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        text-align: center;
+    }
+
+        .card-info div {
+            line-height: 1.4;
+        }
+
+        .card-info strong {
+            font-weight: 600;
+        }
+
+    .card-footer {
+        display: flex;
+        gap: 16px;
+        justify-content: center;
+        margin-top: 12px;
+    }
+
+    /* Bottom action bar - větší, zelené pozadí a ikony místo tlačítek */
+    .bottom-bar {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: var(--bar-height);
+        background: linear-gradient(180deg, var(--brand), var(--brand-dark));
+        border-top: 1px solid rgba(0,0,0,0.06);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1500;
+        padding: 14px;
+        gap: 18px;
+        box-shadow: 0 -6px 20px rgba(0,0,0,0.12);
+    }
+
+        /* Container for the icon buttons (grid like) */
+        .bottom-bar .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+            width: 100%;
+            max-width: 900px;
+            padding: 8px;
+        }
+
+        /* Each action is an accessible button-like link */
+        .bottom-bar .action-btn {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px;
+            border-radius: 12px;
+            text-decoration: none;
+            color: #fff;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            min-height: 72px; /* vyšší dotyková oblast */
+        }
+
+            /* Image placeholders inside the buttons */
+            .bottom-bar .action-btn img {
+                width: 36px;
+                height: 36px;
+                display: block;
+                filter: drop-shadow(0 2px 2px rgba(0,0,0,0.25));
+            }
+
+            /* Label under icon */
+            .bottom-bar .action-btn .label {
+                font-size: 12px;
+                font-weight: 600;
+                color: #fff;
+                text-align: center;
+            }
+
+            /* Destructive action variant */
+            .bottom-bar .action-btn.destructive {
+                background: rgba(255,255,255,0.06);
+                border-color: rgba(255,255,255,0.12);
+            }
+
+    /* Ensure page content is not hidden behind the big bar */
+    .footer {
+        text-align: center;
+        font-size: 16px;
+        padding: 20px 0 180px;
+        color: #3b6b3b;
+    }
+
+    /* Responsive tweaks */
+    @@media (max-width: 420px) {
+        .bottom-bar .actions-grid {
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        .bottom-bar .action-btn {
+            min-height: 64px;
+        }
+        /* On very small screens, make thumbs smaller to fit */
+        .thumb {
+            width: 320px;
+            height: 320px;
+        }
+    }
+
+    @@media (min-width: 480px) {
+        /* Slightly wider thumbs on tablet */
+        .thumb {
+            width: 360px;
+            height: 360px;
+        }
+    }
+
+    @@media (min-width: 768px) {
+        /* Desktop: place filters in a single row where inputs take only needed space */
+        .filter-form {
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+        }
+
+            .filter-form input[type="search"] {
+                flex: 1 1 320px;
+                min-width: 220px;
+            }
+
+            .filter-form select {
+                flex: 0 0 auto;
+                min-width: 160px;
+            }
+
+        .filter-controls {
+            flex-direction: row;
+            gap: 12px;
+            margin-top: 0;
+        }
+
+            .filter-controls .action-btn {
+                width: auto;
+            }
+    }
 </style>
 
 <head>
@@ -163,30 +344,15 @@ body {
 
 <header class="container">
     <div class="header-inner">
-        <div class="brand">
+        <a class="brand" asp-controller="Photos" asp-action="Index" title="Katalog vzorků">
             <img src="/logo.png" alt="ODPO logo" />
-            <h1>Katalog vzorků</h1>
-        </div>
-
-        <div class="header-actions">
-            <a href="@Url.Action("Create", "Photos")" class="action-btn primary">+ Nový</a>
-            <a href="@Url.Action("GetBackup", "DatabaseBackup")" class="action-btn">Záloha</a>
-            <a href="@Url.Action("Database", "Admin")" class="action-btn brand">Obnova</a>
-            <a href="@Url.Action("Import", "Photos")" class="action-btn">Import</a>
-            @if (User?.Identity?.IsAuthenticated ?? false)
-            {
-                <form asp-controller="Home" asp-action="ClearPhotos" method="post" class="inline-form"
-                      onsubmit="return confirm('Opravdu vymazat všechny fotky?');">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="action-btn destructive">Vymazat vše</button>
-                </form>
-            }
-        </div>
+            <h1 class="visually-hidden">Katalog vzorků</h1>
+        </a>
     </div>
 </header>
 
-<main class="container">
-    <div class="user-actions">
+<main class="container" role="main">
+    <div class="user-actions" style="display:flex;justify-content:flex-end;margin-bottom:8px;">
         @if (User?.Identity?.IsAuthenticated ?? false)
         {
             <form asp-controller="Account" asp-action="Logout" method="post" class="inline-form">
@@ -203,24 +369,43 @@ body {
     <div class="toolbar">
         <form method="get" class="filter-form">
             <input type="search" name="search" placeholder="Hledat…" value="@(Model?.Search ?? "")" />
-            <select name="supplier">
+
+            <select name="supplier" aria-label="Dodavatel">
                 <option value="">Všichni dodavatelé</option>
-                @foreach (var s in Model?.Suppliers ?? Enumerable.Empty<string>()) { <option value="@s" selected="@(s == Model?.Supplier)">@s</option> }
+                @foreach (var s in Model?.Suppliers ?? Enumerable.Empty<string>())
+                {
+                    <option value="@s" selected="@(s == Model?.Supplier)">@s</option>
+                }
             </select>
-            <select name="material">
+
+            <select name="material" aria-label="Materiál">
                 <option value="">Všechny materiály</option>
-                @foreach (var m in Model?.Materials ?? Enumerable.Empty<string>()) { <option value="@m" selected="@(m == Model?.Material)">@m</option> }
+                @foreach (var m in Model?.Materials ?? Enumerable.Empty<string>())
+                {
+                    <option value="@m" selected="@(m == Model?.Material)">@m</option>
+                }
             </select>
-            <select name="color">
+
+            <select name="color" aria-label="Barva">
                 <option value="">Všechny barvy</option>
-                @foreach (var c in Model?.Colors ?? Enumerable.Empty<string>()) { <option value="@c" selected="@(c == Model?.Color)">@c</option> }
+                @foreach (var c in Model?.Colors ?? Enumerable.Empty<string>())
+                {
+                    <option value="@c" selected="@(c == Model?.Color)">@c</option>
+                }
             </select>
-            <select name="position">
+
+            <select name="position" aria-label="Pozice">
                 <option value="">Všechny pozice</option>
-                @foreach (var p in Model?.Positions ?? Enumerable.Empty<string>()) { <option value="@p" selected="@(p == Model?.Position)">@p</option> }
+                @foreach (var p in Model?.Positions ?? Enumerable.Empty<string>())
+                {
+                    <option value="@p" selected="@(p == Model?.Position)">@p</option>
+                }
             </select>
-            <button type="submit" class="action-btn">Filtrovat</button>
-            <a href="@Url.Action("Index", "Photos")" class="action-btn">Smazat filtry</a>
+
+            <div class="filter-controls" aria-hidden="false">
+                <button type="submit" class="action-btn primary">Filtrovat</button>
+                <a href="@Url.Action("Index", "Photos")" class="action-btn">Smazat filtry</a>
+            </div>
         </form>
     </div>
 
@@ -242,26 +427,62 @@ body {
                     <div><strong>Pozice:</strong> @Safe(item.Position)</div>
                 </div>
                 <div class="card-footer">
-    <a href="@Url.Action("Edit", new { id = item.Id })" class="action-btn">Upravit</a>
-    <a href="@Url.Action("Details", new { id = item.Id })" class="action-btn primary">Detail</a>
-    <a href="@Url.Action("Delete", new { id = item.Id })" class="action-btn destructive"
-       onclick="return confirm('Opravdu chcete tento vzorek smazat?');">Smazat</a>
-</div>
+                    <a href="@Url.Action("Edit", new { id = item.Id })" class="action-btn">Upravit</a>
+                    <a href="@Url.Action("Details", new { id = item.Id })" class="action-btn primary">Detail</a>
+                    <a href="@Url.Action("Delete", new { id = item.Id })" class="action-btn destructive"
+                       onclick="return confirm('Opravdu chcete tento vzorek smazat?');">Smazat</a>
+                </div>
             </div>
         }
     </div>
 
     <div class="footer">Data se ukládají v databázi. Pro zálohu exportujte data ze serveru.</div>
 
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/service-worker.js')
-                    .then(reg => console.log('Service Worker registered', reg))
-                    .catch(err => console.log('Service Worker registration failed', err));
-            });
-        }
-    </script>
-
-
 </main>
+
+<!-- Bottom fixed action bar with the main actions that were previously in the header -->
+<nav class="bottom-bar" role="navigation" aria-label="Hlavní akce">
+    <div class="actions-grid" role="menu" aria-label="Hlavní akce">
+        <!-- Placeholder SVG icons encoded as data URLs. Replace src with your own images later. -->
+        <a role="menuitem" href="@Url.Action("Create", "Photos")" class="action-btn" title="Nový vzorek">
+            <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24' fill='white'><rect rx='4' width='24' height='24' fill='white' fill-opacity='0'/><path d='M11 11V6h2v5h5v2h-5v5h-2v-5H6v-2z' fill='%23ffffff'/></svg>" alt="Nový" />
+            <div class="label">Nový</div>
+        </a>
+
+        <a role="menuitem" href="@Url.Action("GetBackup", "DatabaseBackup")" class="action-btn" title="Záloha">
+            <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24' fill='white'><path d='M12 2L4 6v6c0 5 3.9 9.4 8 10 4.1-.6 8-5 8-10V6l-8-4zM11 14v-4h2v4h3l-4 4-4-4h3z' fill='%23ffffff'/></svg>" alt="Záloha" />
+            <div class="label">Záloha</div>
+        </a>
+
+        <a role="menuitem" href="@Url.Action("Database", "Admin")" class="action-btn" title="Obnova dat">
+            <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24' fill='white'><path d='M12 6V2L8 6h3v6h2V6h3l-4-4v4zM6 8v2h12V8H6zm0 4v6h12v-6H6z' fill='%23ffffff'/></svg>" alt="Obnova" />
+            <div class="label">Obnova</div>
+        </a>
+
+        <a role="menuitem" href="@Url.Action("Import", "Photos")" class="action-btn" title="Importovat">
+            <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24' fill='white'><path d='M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z' fill='%23ffffff'/></svg>" alt="Import" />
+            <div class="label">Import</div>
+        </a>
+
+        @if (User?.Identity?.IsAuthenticated ?? false)
+        {
+            <form asp-controller="Home" asp-action="ClearPhotos" method="post" onsubmit="return confirm('Opravdu vymazat všechny fotky?');" style="margin:0; display:flex; justify-content:center;" role="none">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="action-btn destructive" title="Vymazat vše" aria-label="Vymazat vše" style="border:0; background:transparent;">
+                    <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24' fill='white'><path d='M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z' fill='%23ffffff'/></svg>" alt="Vymazat" />
+                    <div class="label">Vymazat</div>
+                </button>
+            </form>
+        }
+    </div>
+</nav>
+
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/service-worker.js')
+                .then(reg => console.log('Service Worker registered', reg))
+                .catch(err => console.log('Service Worker registration failed', err));
+        });
+    }
+</script>
