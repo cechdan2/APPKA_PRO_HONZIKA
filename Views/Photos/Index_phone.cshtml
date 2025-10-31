@@ -9,6 +9,18 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 }
 
+<!-- Head/meta improvements for PWA support -->
+<head>
+    <meta name="theme-color" content="#16a34a">
+    <link rel="manifest" href="/manifest.json">
+    <!-- Android / Chrome -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <!-- iOS -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+</head>
+
 <style>
     :root {
         --brand: #16a34a;
@@ -116,10 +128,7 @@
         margin-bottom: var(--pad);
     }
 
-    /* FILTER FORM
-           - Mobile-first: vertical stacked inputs, full-width buttons
-           - Desktop (>=768px): switch to horizontal layout
-        */
+    /* FILTER FORM - mobile-first stacked inputs */
     .filter-form {
         display: flex;
         flex-direction: column;
@@ -136,7 +145,6 @@
             background: #fff;
         }
 
-    /* Make filter action buttons full-width on mobile and visually distinct */
     .filter-controls {
         display: flex;
         flex-direction: column;
@@ -151,16 +159,12 @@
             font-size: 18px;
         }
 
-            .filter-controls .action-btn + .action-btn {
-                /* small visual separation between primary and secondary */
-            }
-
-    /* Cards (updated to match requested style) */
+    /* Cards */
     .card-list {
         display: grid;
         grid-template-columns: 1fr;
         gap: var(--gap);
-        max-height: calc(100vh - 270px); /* match the second style */
+        max-height: calc(100vh - 270px);
         overflow-y: auto;
         padding-bottom: 16px;
     }
@@ -207,7 +211,7 @@
         margin-top: 12px;
     }
 
-    /* Bottom action bar - větší, zelené pozadí a ikony místo tlačítek */
+    /* Bottom action bar */
     .bottom-bar {
         position: fixed;
         left: 0;
@@ -225,7 +229,6 @@
         box-shadow: 0 -6px 20px rgba(0,0,0,0.12);
     }
 
-        /* Container for the icon buttons (grid like) */
         .bottom-bar .actions-grid {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
@@ -235,7 +238,6 @@
             padding: 8px;
         }
 
-        /* Each action is an accessible button-like link */
         .bottom-bar .action-btn {
             display: inline-flex;
             flex-direction: column;
@@ -248,10 +250,9 @@
             color: #fff;
             background: rgba(255,255,255,0.05);
             border: 1px solid rgba(255,255,255,0.08);
-            min-height: 72px; /* vyšší dotyková oblast */
+            min-height: 72px;
         }
 
-            /* Image placeholders inside the buttons */
             .bottom-bar .action-btn img {
                 width: 36px;
                 height: 36px;
@@ -259,7 +260,6 @@
                 filter: drop-shadow(0 2px 2px rgba(0,0,0,0.25));
             }
 
-            /* Label under icon */
             .bottom-bar .action-btn .label {
                 font-size: 12px;
                 font-weight: 600;
@@ -267,13 +267,11 @@
                 text-align: center;
             }
 
-            /* Destructive action variant */
             .bottom-bar .action-btn.destructive {
                 background: rgba(255,255,255,0.06);
                 border-color: rgba(255,255,255,0.12);
             }
 
-    /* Ensure page content is not hidden behind the big bar */
     .footer {
         text-align: center;
         font-size: 16px;
@@ -291,7 +289,7 @@
         .bottom-bar .action-btn {
             min-height: 64px;
         }
-        /* On very small screens, make thumbs smaller to fit */
+
         .thumb {
             width: 320px;
             height: 320px;
@@ -299,7 +297,6 @@
     }
 
     @@media (min-width: 480px) {
-        /* Slightly wider thumbs on tablet */
         .thumb {
             width: 360px;
             height: 360px;
@@ -307,7 +304,6 @@
     }
 
     @@media (min-width: 768px) {
-        /* Desktop: place filters in a single row where inputs take only needed space */
         .filter-form {
             flex-direction: row;
             flex-wrap: wrap;
@@ -337,11 +333,6 @@
     }
 </style>
 
-<head>
-    <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#16a34a">
-</head>
-
 <header class="container">
     <div class="header-inner">
         <a class="brand" asp-controller="Photos" asp-action="Index" title="Katalog vzorků">
@@ -367,7 +358,7 @@
     </div>
 
     <div class="toolbar">
-        <form method="get" class="filter-form">
+        <form method="get" class="filter-form" autocomplete="on">
             <input type="search" name="search" placeholder="Hledat…" value="@(Model?.Search ?? "")" />
 
             <select name="supplier" aria-label="Dodavatel">
@@ -409,11 +400,11 @@
         </form>
     </div>
 
-    <div class="card-list">
+    <div class="card-list" role="list">
         @foreach (var item in Model.Items)
         {
             var src = ImageSrc(item);
-            <div class="item-card">
+            <div class="item-card" role="listitem">
                 @if (!string.IsNullOrEmpty(src))
                 {
                     <a href="@Url.Action("Details", new { id = item.Id })">
@@ -437,13 +428,11 @@
     </div>
 
     <div class="footer">Data se ukládají v databázi. Pro zálohu exportujte data ze serveru.</div>
-
 </main>
 
-<!-- Bottom fixed action bar with the main actions that were previously in the header -->
+<!-- Bottom fixed action bar -->
 <nav class="bottom-bar" role="navigation" aria-label="Hlavní akce">
     <div class="actions-grid" role="menu" aria-label="Hlavní akce">
-        <!-- Placeholder SVG icons encoded as data URLs. Replace src with your own images later. -->
         <a role="menuitem" href="@Url.Action("Create", "Photos")" class="action-btn" title="Nový vzorek">
             <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24' fill='white'><rect rx='4' width='24' height='24' fill='white' fill-opacity='0'/><path d='M11 11V6h2v5h5v2h-5v5h-2v-5H6v-2z' fill='%23ffffff'/></svg>" alt="Nový" />
             <div class="label">Nový</div>
@@ -478,11 +467,42 @@
 </nav>
 
 <script>
+    // Improved service worker registration with scope and better diagnostics.
+    // NOTES:
+    //  - Service workers require HTTPS (or localhost). Ensure site is served over HTTPS.
+    //  - Ensure /service-worker.js exists at the site root and that manifest.json has a matching scope (or uses "/").
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/service-worker.js')
-                .then(reg => console.log('Service Worker registered', reg))
-                .catch(err => console.log('Service Worker registration failed', err));
+            navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
+                .then(registration => {
+                    console.log('Service Worker registered with scope:', registration.scope);
+                })
+                .catch(error => {
+                    console.error('Service Worker registration failed:', error);
+                });
         });
+    }
+
+    // For iOS beforeinstallprompt behavior: provide feedback and fallback
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+        // Prevent the mini-infobar from appearing on mobile
+        e.preventDefault();
+        deferredPrompt = e;
+        // You can choose to show your own install button UI here
+        console.log('beforeinstallprompt captured');
+    });
+
+    // Optional: helper to show prompt (call from your UI if you add an "Install" button)
+    function showInstallPrompt() {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+                console.log('User choice', choiceResult);
+                deferredPrompt = null;
+            });
+        } else {
+            console.log('No install prompt available');
+        }
     }
 </script>
