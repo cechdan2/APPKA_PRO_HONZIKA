@@ -1,6 +1,9 @@
 ﻿@{
     ViewData["Title"] = "Přihlášení";
 }
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
 <style>
     :root {
         --brand: #16a34a;
@@ -10,192 +13,207 @@
         --text: #0b1f0b;
         --white: #fff;
         --radius: 12px;
-        --pad: 12px;
     }
 
-    body {
+    /* --- Základní styly --- */
+    body, html {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
         font-family: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu;
         color: var(--text);
         background: var(--bg);
     }
 
-    .login-wrap {
-        display: flex;
-        justify-content: center;
-        padding: 32px 16px;
+    .page-header {
+        padding: 20px 16px;
+        text-align: center;
     }
+
+        .page-header img {
+            height: 48px;
+            width: auto;
+        }
+
+        .page-header h1 {
+            margin: 6px 0 0 0;
+            font-size: 18px;
+            color: var(--brand);
+        }
+
+        .page-header .subtext {
+            font-size: 13px;
+            color: #666;
+            margin-top: 4px;
+        }
 
     .login-card {
         width: 100%;
-        max-width: 520px;
+        max-width: 420px;
         background: var(--white);
         border: 1px solid var(--border);
         border-radius: var(--radius);
-        padding: 2.0rem 1.6rem;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-    }
-
-    .login-head {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin-bottom: 12px;
+        padding: 2rem 1.8rem;
+        box-shadow: 0 4px 16px rgba(0,0,0,.08);
+        box-sizing: border-box;
     }
 
     .login-title {
         font-size: 1.6rem;
         color: var(--brand-dark);
         font-weight: 700;
-        margin: 0;
+        margin: 0 0 8px 0;
     }
 
     .login-sub {
         color: #666;
         font-size: 0.95rem;
-        margin-bottom: 1rem;
+        margin-top: 0;
+        margin-bottom: 1.5rem;
     }
 
     .form-group {
-        margin-bottom: 12px;
+        margin-bottom: 1.2rem;
     }
 
     label {
         display: block;
         font-weight: 600;
         margin-bottom: 6px;
-        color: #223;
+        color: #334155;
     }
 
     .form-control {
         width: 100%;
-        padding: 10px 12px;
+        padding: 12px 14px;
         border-radius: 8px;
         border: 1px solid var(--border);
         background: #fff;
-        font-size: 0.96rem;
+        font-size: 1rem;
         box-sizing: border-box;
     }
 
+        .form-control:focus {
+            border-color: var(--brand);
+            outline: none;
+            box-shadow: 0 0 0 2px #a7f3d0;
+        }
+
     .form-actions {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-        margin-top: 10px;
+        margin-top: 1.5rem;
     }
 
     .btn-primary {
-        padding: 10px 16px;
+        width: 100%;
+        padding: 14px 16px;
         background: var(--brand);
         color: #fff;
         border: none;
         border-radius: 8px;
         cursor: pointer;
         font-weight: 700;
+        font-size: 1rem;
+        text-align: center;
+        transition: background-color 0.2s;
     }
 
         .btn-primary:hover {
             background: var(--brand-dark);
         }
 
-    .btn-ghost {
-        padding: 8px 12px;
-        background: var(--white);
-        color: var(--brand-dark);
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        cursor: pointer;
-        text-decoration: none;
-        font-weight: 600;
-    }
-
     .text-danger {
         color: #b91c1c;
-        font-size: 0.95rem;
-        margin-top: 8px;
+        font-size: 0.9rem;
     }
 
-    .validation-list {
-        margin: 8px 0 0 0;
-        padding: 0;
-        list-style: none;
+
+    /* --- VZHLED PRO MOBIL (Centrování na střed) --- */
+    @@media (max-width: 767px) {
+        .page-header {
+            display: none; /* Skryjeme původní hlavičku */
+        }
+
+        .login-wrap {
+            /* Toto je klíčové: Kontejner pro centrování */
+            display: flex;
+            flex-direction: column;
+            justify-content: center; /* Vertikální centrování */
+            align-items: center; /* Horizontální centrování */
+            padding: 16px;
+            box-sizing: border-box;
+            width: 100%;
+            height: 100%;
+        }
+
+        .login-card {
+            /* Přidáme zpět hlavičku dovnitř karty */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+            /* Zobrazíme hlavičku, která je uvnitř .login-card */
+            .login-card .page-header {
+                display: flex;
+                padding: 0;
+                margin-bottom: 24px;
+            }
     }
 
-    .helper-row {
-        margin-top: 8px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 12px;
-    }
+    /* Vzhled pro Desktop */
+    @@media (min-width: 768px) {
+        .login-wrap {
+            display: flex;
+            justify-content: center;
+            padding: 20px 16px;
+        }
+        /* Skryjeme hlavičku uvnitř karty, protože na desktopu je vidět ta vnější */
+        .login-card .page-header {
+            display: none;
+        }
 
-    /* responsive: escape @@media for Razor */
-    @@media (max-width: 480px) {
-        .login-card
-
-    {
-        padding: 1.2rem;
-        margin: 12px;
-    }
-
-    .login-title {
-        font-size: 1.2rem;
-    }
-
+        .btn-primary {
+            width: auto;
+            padding: 12px 24px;
+        }
     }
 </style>
 
-
-<header style="margin-bottom:20px;">
-    <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
-        <img src="@Url.Content("~/logo.png")" alt="ODPO logo" style="height:48px;width:auto;display:block;" />
-        <h1 style="margin:0;font-size:18px;color:#16a34a;">Detail vzorku</h1>
-        <div style="font-size:13px;color:#666;">ODPO s.r.o. – Katalog vzorků plastů</div>
-    </div>
+<header class="page-header">
+    <img src="@Url.Content("~/logo.png")" alt="ODPO logo" />
+    <h1>Detail vzorku</h1>
+    <div class="subtext">ODPO s.r.o. – Katalog vzorků plastů</div>
 </header>
 
-
 <div class="login-wrap">
-    <div class="login-card" role="main" aria-labelledby="loginTitle">
-        <div class="login-head">
-            <h2 id="loginTitle" class="login-title">Přihlášení</h2>
-        </div>
+    <div class="login-card" role="main">
 
-        <p class="login-sub">Přihlaste se pro přístup ke správě katalogu vzorků.</p>
+        <!-- Hlavička pro mobilní zobrazení -->
+        <header class="page-header">
+            <img src="@Url.Content("~/logo.png")" alt="ODPO logo" />
+        </header>
+
+        <h2 id="loginTitle" class="login-title">Přihlášení</h2>
+        <p class="login-sub">Přihlaste se pro přístup ke správě katalogu.</p>
 
         <form asp-controller="Account" asp-action="Login" method="post" novalidate>
             @Html.AntiForgeryToken()
-
             <div asp-validation-summary="All" class="text-danger" role="alert"></div>
-
             <div class="form-group">
                 <label for="userName">Uživatelské jméno</label>
                 <input type="text" name="userName" class="form-control" id="userName" autocomplete="username" />
             </div>
-
             <div class="form-group">
                 <label for="password">Heslo</label>
                 <input type="password" name="password" class="form-control" id="password" autocomplete="current-password" />
             </div>
-
             <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
-
             <div class="form-actions">
                 <button type="submit" class="btn-primary">Přihlásit</button>
             </div>
-
-            @if (!ViewData.ModelState.IsValid)
-            {
-                <div class="text-danger" aria-live="polite">
-                    <ul class="validation-list">
-                        @foreach (var err in ViewData.ModelState.Values.SelectMany(v => v.Errors))
-                        {
-                            <li>@err.ErrorMessage</li>
-                        }
-                    </ul>
-                </div>
-            }
         </form>
     </div>
 </div>
-
-<partial name="_ValidationScriptsPartial" />
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

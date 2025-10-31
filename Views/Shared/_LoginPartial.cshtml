@@ -29,6 +29,7 @@
         flex-direction: column;
         align-items: center;
         text-align: center;
+        box-sizing: border-box;
     }
 
     .detail-img {
@@ -45,12 +46,13 @@
         font-size: 2rem;
         color: var(--brand-dark);
         font-weight: 700;
-        margin-bottom: 0.6rem;
+        margin: 0 0 0.6rem 0;
     }
 
     .detail-info {
         margin-bottom: 1.2rem;
         color: #444;
+        line-height: 1.5;
     }
 
     .pill {
@@ -70,6 +72,7 @@
     }
 
     .btn {
+        display: inline-block;
         padding: 8px 16px;
         border-radius: 8px;
         border: 1px solid var(--border);
@@ -79,35 +82,41 @@
         font-weight: 500;
         margin-top: 2em;
         text-decoration: none;
+        transition: background-color 0.2s;
     }
 
         .btn:hover {
-            background: #e6f9e9;
+            background: #f0fdf4; /* Jemnější hover efekt */
         }
 
-    @@media (max-width: 767px) {
-        .detail-card
+    /* --- Responzivní zobrazení --- */
 
-    {
-        margin: 24px 12px;
-        padding: 1.6rem 1.2rem;
-        max-width: calc(100% - 24px);
-    }
-
-    .detail-img {
-        width: 160px;
-        height: 160px;
-    }
-
-    .detail-title {
-        font-size: 1.4rem;
-    }
-
-    }
-
+    /* Styl pro tablety a menší desktopy */
     @@media (min-width: 768px) {
         .detail-card {
             max-width: 640px;
+        }
+    }
+
+    /* Styl pro mobilní telefony */
+    @@media (max-width: 767px) {
+        .detail-card {
+            margin: 24px 12px;
+            padding: 2rem 1.5rem; /* Upraveno pro lepší poměr */
+            max-width: calc(100% - 24px);
+        }
+
+        .detail-img {
+            width: 180px; /* Mírně zvětšeno pro lepší vizuální dopad */
+            height: 180px;
+        }
+
+        .detail-title {
+            font-size: 1.6rem; /* Upraveno pro lepší čitelnost */
+        }
+
+        .detail-info {
+            font-size: 0.95rem;
         }
     }
 </style>
