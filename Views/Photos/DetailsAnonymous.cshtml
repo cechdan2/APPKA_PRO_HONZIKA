@@ -42,7 +42,13 @@
         border: 1.5px solid var(--border);
         margin-bottom: 1.4rem;
         background: #e6f9e9;
+        cursor: pointer;
+        transition: transform .15s ease;
     }
+
+        .detail-img:hover {
+            transform: scale(1.03);
+        }
 
     .detail-title {
         font-size: 2rem;
@@ -95,6 +101,68 @@
         .btn:hover {
             background: #e6f9e9;
         }
+
+    /* Lightbox / modal styles */
+    .img-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.75);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1200;
+        padding: 20px;
+    }
+
+        .img-overlay.open {
+            display: flex;
+        }
+
+        .img-overlay img {
+            max-width: 95%;
+            max-height: 95%;
+            border-radius: 8px;
+            box-shadow: 0 6px 30px rgba(0,0,0,0.6);
+        }
+
+        .img-overlay .close-btn {
+            position: absolute;
+            top: 18px;
+            right: 18px;
+            background: rgba(255,255,255,0.9);
+            border: 0;
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-weight: 700;
+            cursor: pointer;
+            color: #111;
+        }
+
+        .img-overlay .caption {
+            position: absolute;
+            bottom: 26px;
+            left: 26px;
+            right: 26px;
+            text-align: center;
+            color: #fff;
+            font-size: 14px;
+            opacity: 0.95;
+        }
+
+    @@media (max-width: 600px) {
+        .detail-card
+
+    {
+        margin: 18px;
+        padding: 1.5rem;
+    }
+
+    .detail-img {
+        width: 180px;
+        height: 180px;
+    }
+
+    }
 </style>
 
 <header>
@@ -109,12 +177,10 @@
     </div>
 </header>
 
-
-
 <div class="detail-card">
     @if (!string.IsNullOrEmpty(Model.ImagePath ?? Model.PhotoPath))
     {
-        <img src="@Url.Content(Model.ImagePath ?? Model.PhotoPath)" class="detail-img" alt="Foto vzorku" />
+        <img id="sampleImage" src="@Url.Content(Model.ImagePath ?? Model.PhotoPath)" class="detail-img" alt="Foto vzorku" aria-describedby="imgCaption" />
     }
     <div class="detail-title">@Model.Name</div>
     <div class="detail-info">
@@ -148,3 +214,64 @@
         </div>
     </div>
 </div>
+
+<!-- Lightbox overlay -->
+<div id="imgOverlay" class="img-overlay" role="dialog" aria-modal="true" aria-hidden="true">
+    <button type="button" class="close-btn" id="closeOverlay" aria-label="Zavřít náhled">✕</button>
+    <img id="overlayImage" src="" alt="Rozšířený náhled vzorku" />
+    <div id="imgCaption" class="caption">@Model.Name</div>
+</div>
+
+<script>
+    (function () {
+        var img = document.getElementById('sampleImage');
+        var overlay = document.getElementById('imgOverlay');
+        var overlayImg = document.getElementById('overlayImage');
+        var closeBtn = document.getElementById('closeOverlay');
+
+        if (!img || !overlay || !overlayImg || !closeBtn) return;
+
+        // Open overlay when clicking the thumbnail
+        img.addEventListener('click', function () {
+            overlayImg.src = img.src;
+            overlay.classList.add('open');
+            overlay.setAttribute('aria-hidden', 'false');
+            // trap focus on close button for simple accessibility
+            closeBtn.focus();
+        });
+
+        // Close actions
+        function closeOverlay() {
+            overlay.classList.remove('open');
+            overlay.setAttribute('aria-hidden', 'true');
+            overlayImg.src = '';
+            // return focus to thumbnail
+            img.focus();
+        }
+
+        closeBtn.addEventListener('click', closeOverlay);
+
+        // Close when clicking the background (not the image)
+        overlay.addEventListener('click', function (e) {
+            if (e.target === overlay || e.target === overlayImg.parentNode) {
+                closeOverlay();
+            }
+        });
+
+        // Close on Escape
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && overlay.classList.contains('open')) {
+                closeOverlay();
+            }
+        });
+
+        // Make thumbnail keyboard-focusable
+        img.setAttribute('tabindex', '0');
+        img.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                img.click();
+            }
+        });
+    })();
+</script>

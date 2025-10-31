@@ -60,7 +60,13 @@
             border-radius: 10px;
             border: 1.5px solid var(--border);
             background: #f7fef7;
+            cursor: zoom-in; /* show that image is clickable */
+            transition: transform .12s ease;
         }
+
+            .media img.detail-img:hover {
+                transform: scale(1.02);
+            }
 
     .meta {
         width: 100%;
@@ -161,7 +167,68 @@
         grid-template-columns: 1fr;
     }
 
-    }</style>
+    }
+
+    /* Lightbox / fullscreen viewer for clicked image */
+    .image-lightbox {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0,0,0,0.75);
+        z-index: 99999;
+        padding: 20px;
+    }
+
+        .image-lightbox.show {
+            display: flex;
+            animation: fadeIn 150ms ease;
+        }
+
+        .image-lightbox .inner {
+            max-width: calc(100% - 40px);
+            max-height: calc(100% - 40px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .image-lightbox img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+            cursor: zoom-out;
+        }
+
+        .image-lightbox .close-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 6px;
+            border: none;
+            padding: 6px 8px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+    @@keyframes fadeIn {
+        from
+
+    {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+
+    }
+</style>
 
 <main class="detail-page">
 
@@ -186,7 +253,8 @@
         <aside class="media" aria-label="Obrázek a veřejný odkaz">
             @if (!string.IsNullOrEmpty(imageSrc))
             {
-                <img src="@imageSrc" alt="Fotografie vzorku: @Model.Name" class="detail-img" />
+                <!-- Add data-full attribute so the script can open the full-sized image -->
+                <img src="@imageSrc" alt="Fotografie vzorku: @Model.Name" class="detail-img" id="detailImage" data-full="@imageSrc" />
             }
             else
             {
@@ -233,7 +301,7 @@
 
                 <div class="field"><div class="label">Množství (měsíc)</div><div class="value">@Safe(Model.MonthlyQuantity?.ToString())</div></div>
                 <div class="field"><div class="label">MFI</div><div class="value">@Safe(Model.Mfi)</div></div>
-                
+
                 <div class="field full"><div class="label">Poznámky</div><div class="value">@Safe(Model.Notes)</div></div>
 
                 <div class="field"><div class="label">Vytvořeno</div><div class="value">@SafeDate(Model.CreatedAt)</div></div>
@@ -246,3 +314,92 @@
         </section>
     </div>
 </main>
+
+<!-- Lightbox element placed at end of body/main to display clicked image -->
+<div id="imageLightbox" class="image-lightbox" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="inner" role="document">
+        <button class="close-btn" id="lightboxClose" aria-label="Zavřít (Esc)">✕</button>
+        <img id="lightboxImg" src="" alt="Zvětšená fotografie vzorku" />
+    </div>
+</div>
+
+<script>
+    (function () {
+        const detailImg = document.getElementById('detailImage');
+        const lightbox = document.getElementById('imageLightbox');
+        const lightboxImg = document.getElementById('lightboxImg');
+        const closeBtn = document.getElementById('lightboxClose');
+
+        function openLightbox(src, alt) {
+            if (!src) return;
+            lightboxImg.src = src;
+            if (alt) lightboxImg.alt = alt;
+            lightbox.classList.add('show');
+            lightbox.setAttribute('aria-hidden', 'false');
+            // prevent page scroll while open
+            document.documentElement.style.overflow = 'hidden';
+            document.body.style.overflow = 'hidden';
+            // focus close button for accessibility
+            closeBtn.focus();
+        }
+
+        function closeLightbox() {
+            lightbox.classList.remove('show');
+            lightbox.setAttribute('aria-hidden', 'true');
+            // small timeout to avoid flicker on some browsers when clearing src
+            setTimeout(() => { lightboxImg.src = ''; }, 120);
+            document.documentElement.style.overflow = '';
+            document.body.style.overflow = '';
+        }
+
+        // Open when clicking the detail thumbnail (if present)
+        if (detailImg) {
+            detailImg.addEventListener('click', function (e) {
+                const full = detailImg.getAttribute('data-full') || detailImg.src;
+                openLightbox(full, detailImg.alt || '');
+            });
+
+            // also allow Enter / Space when focused
+            detailImg.setAttribute('tabindex', '0');
+            detailImg.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    const full = detailImg.getAttribute('data-full') || detailImg.src;
+                    openLightbox(full, detailImg.alt || '');
+                }
+            });
+        }
+
+        // Close interactions
+        closeBtn.addEventListener('click', closeLightbox);
+
+        // Clicking on overlay (outside the inner image) closes
+        lightbox.addEventListener('click', function (e) {
+            if (e.target === lightbox) {
+                closeLightbox();
+            }
+        });
+
+        // clicking on image also closes (useful for touch)
+        lightboxImg.addEventListener('click', closeLightbox);
+
+        // Close with Escape key
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && lightbox.classList.contains('show')) {
+                closeLightbox();
+            }
+        });
+
+        // Prevent accidental drag causing selection on mobile
+        lightboxImg.addEventListener('dragstart', function (e) { e.preventDefault(); });
+
+        // Accessibility: simple focus trap while lightbox open
+        document.addEventListener('focus', function (event) {
+            if (!lightbox.classList.contains('show')) return;
+            if (!lightbox.contains(event.target)) {
+                event.stopPropagation();
+                closeBtn.focus();
+            }
+        }, true);
+    })();
+</script>
